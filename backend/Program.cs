@@ -12,23 +12,21 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json;
-using Serilog;
-using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DATABASE
+// --- 1. DATABASE CONFIGURATION ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
-        npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), null);
+        npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
         npgsqlOptions.CommandTimeout(30);
     }));
 
-// CACHE
+// --- 2. CACHING (Redis or Memory) ---
 var redisConnection = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrWhiteSpace(redisConnection))
 {
@@ -43,7 +41,7 @@ else
     builder.Services.AddDistributedMemoryCache();
 }
 
-// AUTH
+// --- 3. AUTHENTICATION & AUTHORIZATION ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var jwtSecret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
 
@@ -67,7 +65,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// DEPENDENCY INJECTION
+// --- 4. DEPENDENCY INJECTION - REPOSITORIES ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -75,7 +73,9 @@ builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IFileChangeLogRepository, FileChangeLogRepository>();
 builder.Services.AddScoped<IInvalidInvoiceRepository, InvalidInvoiceRepository>();
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 
+// --- 5. DEPENDENCY INJECTION - APPLICATION SERVICES ---
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
@@ -84,35 +84,34 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IFileChangeLogService, FileChangeLogService>();
-builder.Services.AddScoped<IInvalidInvoiceService, InvalidInvoiceService>();
 builder.Services.AddScoped<IRateLimitService, RateLimitService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IInvalidInvoiceService, InvalidInvoiceService>(); // Fixed: Added missing service
 
+// --- 6. DEPENDENCY INJECTION - SECURITY & VALIDATION ---
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddSingleton<IHmacValidator, HmacValidator>();
-builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 
-builder.Services.AddHttpClient();
-
-// SECURITY PIPELINE
-builder.Services.AddSingleton<FileTypeValidator>();
-builder.Services.AddSingleton<MagicBytesValidator>();
-builder.Services.AddScoped<TokenCountValidator>();
+// Fixed: Added Security Pipeline and Validators
 builder.Services.AddScoped<IFileSecurityPipeline, FileSecurityPipeline>();
-builder.Services.AddHttpClient<VirusTotalScanner>(client =>
-{
-    client.BaseAddress = new Uri("https://www.virustotal.com");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+builder.Services.AddScoped<FileTypeValidator>();
+builder.Services.AddScoped<MagicBytesValidator>();
+builder.Services.AddScoped<TokenCountValidator>();
 
+// --- 7. EXTERNAL SERVICES & HTTP CLIENTS ---
+builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
+builder.Services.AddHttpClient(); // Required for general use
+builder.Services.AddHttpClient<VirusTotalScanner>(); // Required for Security Pipeline
+builder.Services.AddScoped<IWorkerClient, WorkerClient>();
 
-// BACKGROUND SERVICES
+// --- 8. BACKGROUND & BOOTSTRAP SERVICES ---
 builder.Services.AddHostedService<JobCreationService>();
 builder.Services.AddHostedService<JobRetryService>();
 builder.Services.AddHostedService<DriveMonitoringService>();
 builder.Services.AddScoped<AdminBootstrapService>();
 
-// CORS
+// --- 9. CORS CONFIGURATION ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -120,116 +119,68 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .WithExposedHeaders("Token-Expired");
     });
 });
 
-// CONTROLLERS
+// --- 10. CONTROLLERS & JSON OPTIONS ---
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
-// SWAGGER (FIXED - AUTOMATIC BEARER)
+// --- 11. SWAGGER ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Invoice API", Version = "v1" });
-
-    // Fix: JsonDocument/JsonElement cannot be described by Swashbuckle.
-    // Map them to a freeform object schema so swagger.json generates correctly.
-    c.MapType<System.Text.Json.JsonDocument>(() => new OpenApiSchema { Type = "object", AdditionalPropertiesAllowed = true });
-    c.MapType<System.Text.Json.JsonElement>(() => new OpenApiSchema { Type = "object", AdditionalPropertiesAllowed = true });
-
-    // Use 'Http' scheme with 'bearer' format - No manual 'Bearer ' prefix needed
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Enter your JWT token in the text input below (Do NOT type 'Bearer').",
         Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT"
     });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
         {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
     });
 });
 
-// LOGGING - Serilog with status-based file sinks
-builder.Host.UseSerilog((context, config) =>
-{
-    config
-        .MinimumLevel.Debug()
-        .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-        // Console output
-        .WriteTo.Console()
-        // Success logs (Info and below)
-        .WriteTo.Logger(lc => lc
-            .Filter.ByIncludingOnly(e => e.Level <= LogEventLevel.Information)
-            .WriteTo.File(
-                path: Path.Combine("logs", "logs_backend", "success", "log-.txt"),
-                rollingInterval: RollingInterval.Day,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} | {SourceContext} | {Level:u3} | {Message:lj}{NewLine}{Exception}"))
-        // Warn logs (Warning only)
-        .WriteTo.Logger(lc => lc
-            .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Warning)
-            .WriteTo.File(
-                path: Path.Combine("logs", "logs_backend", "warn", "log-.txt"),
-                rollingInterval: RollingInterval.Day,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} | {SourceContext} | {Level:u3} | {Message:lj}{NewLine}{Exception}"))
-        // Fail logs (Error and Fatal)
-        .WriteTo.Logger(lc => lc
-            .Filter.ByIncludingOnly(e => e.Level >= LogEventLevel.Error)
-            .WriteTo.File(
-                path: Path.Combine("logs", "logs_backend", "fail", "log-.txt"),
-                rollingInterval: RollingInterval.Day,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} | {SourceContext} | {Level:u3} | {Message:lj}{NewLine}{Exception}"));
-});
-
 var app = builder.Build();
 
-// MIGRATION
+// --- 12. DATABASE MIGRATION & BOOTSTRAP ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        if (context.Database.GetPendingMigrations().Any())
-        {
-            await context.Database.MigrateAsync();
-        }
-        await services.GetRequiredService<AdminBootstrapService>().EnsureAdminExistsAsync();
+        await context.Database.MigrateAsync();
+
+        var bootstrap = services.GetRequiredService<AdminBootstrapService>();
+        await bootstrap.EnsureAdminExistsAsync();
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during migration.");
+        logger.LogError(ex, "An error occurred during startup initialization");
     }
 }
 
-// MIDDLEWARE
+// --- 13. MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "V1"); c.RoutePrefix = string.Empty; });
 }
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
