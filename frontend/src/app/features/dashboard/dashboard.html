@@ -1,27 +1,109 @@
 <section class="dashboard-page">
-  <h1 class="title">Dashboard</h1>
-  
-  <div class="panel">
-    <h2>Trending Products (Last 30 Days)</h2>
-    @if (loading()) {
-      <div class="spinner"></div>
-    } @else {
-      <div class="products-grid">
-        @for (product of trendingProducts(); track product.productId) {
-          <div class="stat-card">
-            <h3>{{ product.productName }}</h3>
-            <p class="stat-value">{{ formatCurrency(product.totalRevenue) }}</p>
-            <p class="stat-label">Revenue</p>
-            <div class="meta">
-              <span>Qty: {{ product.totalQuantity }}</span>
-              <span>Inv: {{ product.invoiceCount }}</span>
-            </div>
-          </div>
-        }
-        @if (trendingProducts().length === 0) {
-          <p>No trending data available.</p>
-        }
-      </div>
-    }
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div>
+      <h1 class="title">Analytics Dashboard</h1>
+      <p class="subtitle">Invoice analytics and product insights</p>
+    </div>
+    <div class="range-filters">
+      <button class="range-btn" [class.active]="selectedRange() === '30d'" (click)="setRange('30d')">30D</button>
+      <button class="range-btn" [class.active]="selectedRange() === '90d'" (click)="setRange('90d')">90D</button>
+      <button class="range-btn" [class.active]="selectedRange() === '12m'" (click)="setRange('12m')">12M</button>
+      <button class="range-btn" [class.active]="selectedRange() === 'all'" (click)="setRange('all')">All Time</button>
+    </div>
   </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <span>Loading analytics…</span>
+  </div>
+  } @else {
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="stat-card">
+      <div class="stat-label">
+        Total Revenue
+        <span class="info-icon" title="Total pre-discount amount from all processed invoices">ⓘ</span>
+      </div>
+      <div class="stat-value">{{ totalRevenue() | currency:'USD':'symbol':'1.0-0' }}</div>
+      <div class="stat-sub">Across all categories</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Invoices</div>
+      <div class="stat-value">{{ totalInvoices() }}</div>
+      <div class="stat-sub">Processed documents</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg. Order Value</div>
+      <div class="stat-value">{{ avgOrderValue() | currency:'USD':'symbol':'1.0-0' }}</div>
+      <div class="stat-sub">Per invoice</div>
+    </div>
+    <div class="stat-card accent">
+      <div class="stat-label">Top Category</div>
+      <div class="stat-value gradient-text">{{ topCategory() }}</div>
+      <div class="stat-sub">Highest revenue</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Revenue Split</h2>
+        <span class="panel-hint">by category</span>
+      </div>
+      <div #donutContainer class="chart-host"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Invoice Volume</h2>
+        <span class="panel-hint">by category</span>
+      </div>
+      <div #barContainer class="chart-host"></div>
+    </div>
+  </div>
+
+  <!-- Trending Products -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Trending Products</h2>
+      <span class="panel-hint">Top 5 by revenue</span>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-row header">
+        <span class="align-center">#</span>
+        <span class="align-center">Product</span>
+        <span class="align-center">Category</span>
+        <span class="align-center">Invoices</span>
+        <span class="align-center">Revenue</span>
+        <span class="align-center">
+          Growth
+          <span class="info-icon" title="Growth rate compared to previous period of same duration">ⓘ</span>
+        </span>
+      </div>
+
+      @for (p of trendingProducts(); track p.productId) {
+      <div class="table-row">
+        <span class="rank align-center">{{ p.rank }}</span>
+        <span class="product-name align-center">{{ p.productName }}</span>
+        <span class="cat-tag align-center">{{ p.category }}</span>
+        <span class="align-center muted">{{ p.invoiceCount }}</span>
+        <span class="align-center font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
+        <span class="align-center" [ngClass]="growthClass(p.growthRate)">{{ growthLabel(p.growthRate) }}</span>
+      </div>
+      }
+
+      @empty {
+      <div class="empty-row align-center">No trending data available</div>
+      }
+    </div>
+  </div>
+
+  }
 </section>

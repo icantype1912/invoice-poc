@@ -16,6 +16,7 @@ namespace invoice_v1.src.Infrastructure.Repositories
         Task<List<FileChangeLog>> GetUnprocessedLogsAsync(int limit);
         Task<List<FileChangeLog>> GetUnprocessedHealthyLogsAsync(int limit);
         Task<(List<FileChangeLog> Data, int Total)> GetUnhealthyLogsAsync(int page, int pageSize, Guid? vendorId);
+        Task<FileChangeLog?> GetRecentUnhealthyLogAsync(Guid vendorId, string fileName, long fileSize, TimeSpan window);
         Task<FileChangeLog> CreateAsync(FileChangeLog log);
         Task UpdateAsync(FileChangeLog log);
         Task<int> SaveChangesAsync();

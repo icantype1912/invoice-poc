@@ -47,7 +47,7 @@ namespace invoice_v1.src.Infrastructure.Repositories
             {
                 var vendorIdString = vendorId.Value.ToString();
                 query = query.Where(j =>
-                    j.PayloadJson.RootElement.GetProperty("driveVendorId").GetString() == vendorIdString);
+                    j.PayloadJson.RootElement.GetProperty("uploader").GetString() == vendorIdString);
             }
 
             var total = await query.CountAsync();

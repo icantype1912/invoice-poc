@@ -12,6 +12,7 @@ namespace invoice_v1.src.Services
         private DriveService? _userDrive;
         private readonly ILogger<GoogleDriveService> _logger;
         private readonly IConfiguration _configuration;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _folderLocks = new();
 
         public GoogleDriveService(IConfiguration configuration, ILogger<GoogleDriveService> logger)
         {
@@ -160,35 +161,44 @@ namespace invoice_v1.src.Services
             string email)
         {
             var folderName = email.ToLowerInvariant().Trim();
+            var folderLock = _folderLocks.GetOrAdd(folderName, _ => new SemaphoreSlim(1, 1));
 
-            // Check if folder exists
-            var listRequest = drive.Files.List();
-            listRequest.Q = $"mimeType='application/vnd.google-apps.folder' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
-            listRequest.Fields = "files(id, name)";
-
-            var response = await listRequest.ExecuteAsync();
-            var existing = response.Files?.FirstOrDefault();
-
-            if (existing != null)
+            await folderLock.WaitAsync();
+            try
             {
-                _logger.LogInformation("Vendor folder exists: {FolderId}", existing.Id);
-                return existing.Id;
+                // Check if folder exists
+                var listRequest = drive.Files.List();
+                listRequest.Q = $"mimeType='application/vnd.google-apps.folder' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
+                listRequest.Fields = "files(id, name)";
+
+                var response = await listRequest.ExecuteAsync();
+                var existing = response.Files?.FirstOrDefault();
+
+                if (existing != null)
+                {
+                    _logger.LogInformation("Vendor folder exists: {FolderId}", existing.Id);
+                    return existing.Id;
+                }
+
+                // Create folder if not exists
+                var fileMetadata = new Google.Apis.Drive.v3.Data.File
+                {
+                    Name = folderName,
+                    MimeType = "application/vnd.google-apps.folder",
+                    Parents = new[] { parentFolderId }
+                };
+
+                var createRequest = drive.Files.Create(fileMetadata);
+                createRequest.Fields = "id";
+                var folder = await createRequest.ExecuteAsync();
+
+                _logger.LogInformation("Created new vendor folder: {FolderId}", folder.Id);
+                return folder.Id;
             }
-
-            // Create folder if not exists
-            var fileMetadata = new Google.Apis.Drive.v3.Data.File
+            finally
             {
-                Name = folderName,
-                MimeType = "application/vnd.google-apps.folder",
-                Parents = new[] { parentFolderId }
-            };
-
-            var createRequest = drive.Files.Create(fileMetadata);
-            createRequest.Fields = "id";
-            var folder = await createRequest.ExecuteAsync();
-
-            _logger.LogInformation("Created new vendor folder: {FolderId}", folder.Id);
-            return folder.Id;
+                folderLock.Release();
+            }
         }
 
         public async Task<DriveFileResult> UploadFileAsync(
@@ -217,7 +227,7 @@ namespace invoice_v1.src.Services
                 };
 
                 var request = drive.Files.Create(fileMetadata, stream, mimeType);
-                request.Fields = "id, name, webViewLink";
+                request.Fields = "id, name, webViewLink, modifiedTime";
 
                 var uploadResult = await request.UploadAsync();
 
@@ -235,7 +245,8 @@ namespace invoice_v1.src.Services
                 {
                     Id = uploadedFile.Id,
                     Name = uploadedFile.Name,
-                    WebViewLink = uploadedFile.WebViewLink
+                    WebViewLink = uploadedFile.WebViewLink,
+                    ModifiedTime = uploadedFile.ModifiedTime?.ToUniversalTime()
                 };
             }
             catch (Google.GoogleApiException gex)

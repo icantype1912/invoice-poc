@@ -1,76 +1,105 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { Auth } from '../../../core/services/auth';
-import { CommonModule } from '@angular/common';
-
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [FormsModule, RouterLink, CommonModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './signup.html',
   styleUrl: './signup.css',
 })
 export class Signup {
-  email: string = '';
-  password: string = '';
-  confirmPassword: string = '';
-  companyName: string = '';
-  address: string = '';
-  phoneNumber: string = '';
-  loading: boolean = false;
-  errorMessage: string = '';
-  successMessage: string = '';
+  email = '';
+  password = '';
+  confirmPassword = '';
+  company = '';
+
+  errorMessage = signal('');
+  successMessage = signal('');
+  isLoading = signal(false);
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
+
+  togglePassword() {
+    this.showPassword.update(v => !v);
+  }
+
+  toggleConfirmPassword() {
+    this.showConfirmPassword.update(v => !v);
+  }
 
   constructor(
     private auth: Auth,
     private router: Router
-  ) {}
+  ) { }
 
-  signup(): void {
-    this.errorMessage = '';
-    this.successMessage = '';
+  signup() {
+    this.errorMessage.set('');
+    this.successMessage.set('');
 
-    // Validation
+    if (!this.email || !this.password || !this.company) {
+      this.errorMessage.set('Email, password, and company name are required');
+      return;
+    }
+
     if (this.password !== this.confirmPassword) {
-      this.errorMessage = 'Passwords do not match';
+      this.errorMessage.set('Passwords do not match');
       return;
     }
 
-    if (!this.email || !this.password || !this.companyName) {
-      this.errorMessage = 'Please fill in all required fields';
+    // Password Complexity Checks
+    const hasLowercase = /[a-z]/.test(this.password);
+    const hasUppercase = /[A-Z]/.test(this.password);
+    const hasDigit = /\d/.test(this.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(this.password);
+
+    if (this.password.length < 8) {
+      this.errorMessage.set('Password must be at least 8 characters');
+      return;
+    }
+    if (!hasLowercase) {
+      this.errorMessage.set('Password must include at least one lowercase character');
+      return;
+    }
+    if (!hasUppercase) {
+      this.errorMessage.set('Password must include at least one uppercase character');
+      return;
+    }
+    if (!hasDigit) {
+      this.errorMessage.set('Password must include at least one number');
+      return;
+    }
+    if (!hasSpecial) {
+      this.errorMessage.set('Password must include at least one special character');
       return;
     }
 
-    this.loading = true;
+    this.isLoading.set(true);
 
     this.auth.signup({
       email: this.email,
       password: this.password,
-      companyName: this.companyName,
-      address: this.address || undefined,
-      phoneNumber: this.phoneNumber || undefined
+      companyName: this.company
     }).subscribe({
-      next: (res) => {
-        console.log('Signup success', res);
-        this.successMessage = res.message || 'Signup successful! Please wait for admin approval.';
-        setTimeout(() => {
-          this.router.navigate(['/login']);
-        }, 3000);
+      next: () => {
+        this.isLoading.set(false);
+        this.successMessage.set('Signup successful! Your account is pending approval. You will be able to login once an admin approves your account.');
       },
       error: (err) => {
-        console.error('Signup failed', err);
-        this.loading = false;
-        
-        if (err.status === 400) {
-          this.errorMessage = err.error?.message || 'Invalid signup data';
+        this.isLoading.set(false);
+
+        const msg = err.error?.message || err.error?.Message;
+        if (msg === "Prohibited to register contact admin") {
+          this.errorMessage.set(msg);
+        } else if (err.status === 400) {
+          this.errorMessage.set(msg || 'Invalid signup data. Please check your inputs.');
         } else if (err.status === 429) {
-          this.errorMessage = 'Too many signup attempts. Please try again later.';
-        } else if (err.error?.message) {
-          this.errorMessage = err.error.message;
+          this.errorMessage.set(msg || 'Too many signup attempts. Please try again later.');
         } else {
-          this.errorMessage = 'An error occurred during signup';
+          this.errorMessage.set('An unexpected error occurred. Please try again.');
         }
       }
     });

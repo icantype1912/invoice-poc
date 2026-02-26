@@ -1,35 +1,29 @@
-# Stage 1: Build
+# =====================================
+# BUILD STAGE
+# =====================================
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy csproj and restore dependencies
-COPY ["invoice-v1.csproj", "./"]
-RUN dotnet restore "invoice-v1.csproj"
+# Copy solution + project files first (better caching)
+COPY *.sln ./
+COPY *.csproj ./
 
-# Copy everything else and build
+RUN dotnet restore
+
+# Copy everything else
 COPY . .
-RUN dotnet build "invoice-v1.csproj" -c Release -o /app/build
 
-# Stage 2: Publish
-FROM build AS publish
-RUN dotnet publish "invoice-v1.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Publish optimized build
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 
-# Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-# Create directory for secrets
-RUN mkdir -p /app/secrets
+COPY --from=build /app/publish .
 
-# Expose ports
-EXPOSE 80
-EXPOSE 443
+ENV ASPNETCORE_URLS=http://+:5247
 
-# Copy published files
-COPY --from=publish /app/publish .
-
-# Set environment
-ENV ASPNETCORE_URLS=http://+:80
-ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 5247
 
 ENTRYPOINT ["dotnet", "invoice-v1.dll"]

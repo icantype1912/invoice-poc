@@ -1,32 +1,74 @@
 <nav class="navbar">
 
   <div class="left">
-    <span class="logo" routerLink="/">InvoiceAI</span>
+    <span class="logo" [routerLink]="isLoggedIn ? null : '/'" [class.disabled]="isLoggedIn">
+      <img [src]="logoSrc()" alt="Aveva Logo" />
+    </span>
 
-    <!-- Logged IN -->
-    @if (auth.isLoggedIn()) {
-      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-      <a routerLink="/invoices" routerLinkActive="active">Invoices</a>
-      <a routerLink="/products" routerLinkActive="active">Products</a>
-      <a routerLink="/upload" routerLinkActive="active">Upload</a>
-      <a routerLink="/admin" routerLinkActive="active">Admin</a>
+    @if (isLoggedIn && isVendor) {
+    <a routerLink="/upload" class="nav-link">Upload</a>
     }
 
-    <!-- Logged OUT -->
-    @if (!auth.isLoggedIn()) {
-      <a routerLink="/login">Login</a>
-      <a routerLink="/signup">Signup</a>
+    @if (isLoggedIn) {
+    <a routerLink="/dashboard" class="nav-link">Dashboard</a>
+    <a routerLink="/invoices" class="nav-link">Invoices</a>
+    <a routerLink="/products" class="nav-link">Products</a>
+    <a routerLink="/logs" class="nav-link">Logs</a>
+    <a routerLink="/jobs" class="nav-link">Job Queue</a>
+    }
+
+    @if (isLoggedIn && isAdmin) {
+    <a routerLink="/admin" class="nav-link">Admin</a>
+    }
+
+    @if (!isLoggedIn && !isLandingPage) {
+    <a routerLink="/login" class="nav-link">Login</a>
+    <a routerLink="/signup" class="nav-link">Signup</a>
     }
   </div>
 
   <div class="right">
-    <mat-slide-toggle
-      (click)="toggleTheme()"
-      class="my-toggle">
-    </mat-slide-toggle>
+    <!-- Sun / Moon toggle -->
+    <button class="theme-btn" (click)="toggleTheme()"
+      [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+      @if (isDark()) {
+      <!-- Moon (half) -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      } @else {
+      <!-- Sun -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+      }
+    </button>
 
-    @if (auth.isLoggedIn()) {
-      <button (click)="logout()">Logout</button>
+    <!-- User avatar + dropdown -->
+    @if (isLoggedIn) {
+    <div class="user-menu">
+      <button class="avatar-btn" (click)="toggleDropdown()">
+        {{ getUserInitials() }}
+      </button>
+
+      @if (dropdownOpen()) {
+      <div class="dropdown">
+        <div class="dropdown-role">Signed in as <strong>{{ getRoleLabel() }}</strong></div>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item logout-item" (click)="logout()">Logout</button>
+      </div>
+      }
+    </div>
     }
   </div>
 

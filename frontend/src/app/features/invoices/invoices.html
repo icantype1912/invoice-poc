@@ -1,0 +1,278 @@
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Invoices</h1>
+      <p class="page-subtitle">Manage and review extracted invoices</p>
+    </div>
+  </div>
+
+  <!-- VALID INVOICES SECTION -->
+  <div class="section-panel">
+    <button class="section-toggle" (click)="toggleValid()">
+      <span class="toggle-arrow" [class.open]="validOpen()">▶</span>
+      <span class="section-title-text">Valid Invoices</span>
+      <span class="section-count">{{ validTotal() }}</span>
+    </button>
+
+    @if (validOpen()) {
+    <div class="section-body">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="align-center"></th>
+                @if (isAdmin) { <th class="align-center">ID</th> }
+                <th class="align-center">Invoice #</th>
+                <th class="align-center">Date</th>
+                <th class="align-center">File</th>
+                @if (isAdmin) { <th class="align-center">Vendor</th> }
+                @if (isAdmin) { <th class="align-center">Vendor ID</th> }
+                <th class="align-center">Amount</th>
+                <th class="align-center">Currency</th>
+                <th class="align-center">Shipping</th>
+                <th class="align-center">Discount</th>
+                @if (isAdmin) { <th class="align-center">Discount %</th> }
+                <th class="align-center">Lines</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of validInvoices(); track inv.id) {
+              <tr class="clickable" (click)="toggleExpand(inv.id)">
+                <td class="align-center">
+                  <span class="expand-icon" [class.open]="expandedInvoiceId() === inv.id">▶</span>
+                </td>
+                @if (isAdmin) { <td class="mono muted align-center" [title]="inv.id">{{ inv.id }}</td> }
+                <td class="font-medium align-center" [title]="inv.invoiceNumber">
+                  @if (inv.invoiceNumber) { {{ inv.invoiceNumber }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">No invoice #</span> }
+                </td>
+                <td class="muted align-center">
+                  @if (inv.invoiceDate) { {{ inv.invoiceDate | date:'mediumDate' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">N/A</span> }
+                </td>
+                <td class="align-center">
+                  <button class="link-btn" (click)="viewInvoice(inv.driveFileId); $event.stopPropagation()">
+                    View
+                  </button>
+                </td>
+                @if (isAdmin) {
+                <td class="align-center" [title]="inv.vendorName">
+                  @if (inv.vendorName) { {{ inv.vendorName }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="mono muted align-center" [title]="inv.uploadedByVendorId">
+                  @if (inv.uploadedByVendorId) { {{ inv.uploadedByVendorId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                }
+                <td class="align-center font-bold">
+                  @if (inv.totalAmount != null) { {{ inv.totalAmount | currency:(inv.currency || 'USD'):'symbol':'1.2-2'
+                  }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="muted align-center">
+                  @if (inv.currency) { {{ inv.currency }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="align-center muted">
+                  @if (inv.shippingCost != null) { {{ inv.shippingCost | currency:(inv.currency ||
+                  'USD'):'symbol':'1.2-2' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="align-center muted">
+                  @if (inv.discount?.amount != null) { {{ inv.discount?.amount | currency:(inv.currency ||
+                  'USD'):'symbol':'1.2-2' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                @if (isAdmin) {
+                <td class="align-center muted">
+                  @if (inv.discount?.percentage != null) { {{ inv.discount?.percentage }}% }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                }
+                <td class="align-center muted">
+                  @if (inv.lineItems?.length) { {{ inv.lineItems.length }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+              </tr>
+
+              <!-- Expanded line items -->
+              @if (expandedInvoiceId() === inv.id && inv.lineItems?.length) {
+              <tr class="line-items-row">
+                <td [attr.colspan]="isAdmin ? 13 : 9">
+                  <div class="line-items-panel">
+                    <div class="line-items-header">
+                      <span>Line Items</span>
+                      @if (inv.shippingCost != null) { <span class="meta-tag">Shipping: {{ inv.shippingCost |
+                        currency:(inv.currency || 'USD'):'symbol':'1.2-2' }}</span> }
+                      @if (inv.discount?.amount != null) { <span class="meta-tag discount">Discount: -{{
+                        inv.discount?.amount | currency:(inv.currency || 'USD'):'symbol':'1.2-2' }}</span> }
+                    </div>
+                    <table class="inner-table">
+                      <thead>
+                        <tr>
+                          @if (isAdmin) { <th class="align-center">Product ID</th> }
+                          <th class="align-center">Product</th>
+                          <th class="align-center">Category</th>
+                          <th class="align-center">Qty</th>
+                          <th class="align-center">Unit Price</th>
+                          <th class="align-center">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (line of inv.lineItems; track line.id) {
+                        <tr>
+                          @if (isAdmin) {
+                          <td class="mono muted align-center">
+                            @if (line.productId) { {{ line.productId }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          }
+                          <td class="font-medium align-center">
+                            @if (line.productName) { {{ line.productName }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center">
+                            @if (line.category) { <span class="tag">{{ line.category }}</span> }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center muted">
+                            @if (line.quantity != null) { {{ line.quantity }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center">
+                            @if (line.unitRate != null) { {{ line.unitRate | currency:(inv.currency ||
+                            'USD'):'symbol':'1.2-2' }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center font-bold">
+                            @if (line.amount != null) { {{ line.amount | currency:(inv.currency ||
+                            'USD'):'symbol':'1.2-2' }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                        </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+              }
+              }
+              @if (!validInvoices().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 13 : 9" class="empty-cell">No valid invoices found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button class="page-btn" (click)="validPrevPage()" [disabled]="validPage() <= 1">Prev</button>
+          <span class="page-info">Page {{ validPage() }} / {{ validTotalPages() }}</span>
+          <button class="page-btn" (click)="validNextPage()" [disabled]="validPage() >= validTotalPages()">Next</button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- INVALID INVOICES SECTION -->
+  <div class="section-panel">
+    <button class="section-toggle" (click)="toggleInvalid()">
+      <span class="toggle-arrow" [class.open]="invalidOpen()">▶</span>
+      <span class="section-title-text">Invalid Invoices</span>
+      <span class="section-count danger">{{ invalidTotal() }}</span>
+    </button>
+
+    @if (invalidOpen()) {
+    <div class="section-body">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table class="table">
+            <thead>
+              <tr>
+                @if (isAdmin) { <th class="align-center">Invalid ID</th> }
+                <th class="align-center">File</th>
+                <th class="align-center">Type</th>
+                <th class="align-center">Reason</th>
+                <th class="align-center">Date</th>
+                @if (isAdmin) {
+                <th class="align-center">File ID</th>
+                <th class="align-center">Vendor ID</th>
+                <th class="align-center">Job ID</th>
+                <th class="align-center">Actions</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of invalidInvoices(); track inv.id) {
+              <tr>
+                @if (isAdmin) { <td class="mono muted align-center" [title]="inv.id">{{ inv.id }}</td> }
+                <td class="font-medium file-name-cell align-center" [title]="inv.fileName || ''">
+                  @if (inv.fileName) {
+                  <button class="link-btn-text" (click)="viewInvoice(inv.fileId)">
+                    {{ inv.fileName }}
+                  </button>
+                  }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">N/A</span> }
+                </td>
+                <td class="align-center">
+                  <span class="type-badge" [class.security]="inv.type === 'SecurityViolation'"
+                    [class.extraction]="inv.type === 'ExtractionFailure'">
+                    @if (inv.type) { {{ typeLabel(inv.type) }} }
+                    @else { - }
+                  </span>
+                </td>
+                <td class="muted reason-cell align-center" [title]="prettifyReason(inv.reason)">
+                  @if (inv.reason) { {{ truncateReason(inv.reason) }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="muted align-center">
+                  @if (inv.createdAt) { {{ inv.createdAt | date:'short' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                @if (isAdmin) {
+                <td class="mono muted align-center" [title]="inv.fileId || ''">
+                  @if (inv.fileId) { {{ inv.fileId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="mono muted align-center" [title]="inv.vendorId || ''">
+                  @if (inv.vendorId) { {{ inv.vendorId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="mono muted align-center" [title]="inv.jobId || ''">
+                  @if (inv.jobId) { {{ inv.jobId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="align-center">
+                  @if (inv.jobId) {
+                  <button class="action-btn" (click)="requeueJob(inv.jobId!)">Requeue</button>
+                  } @else {
+                  <span class="muted" style="font-size: 0.9em;">-</span>
+                  }
+                </td>
+                }
+              </tr>
+              }
+              @if (!invalidInvoices().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 9 : 4" class="empty-cell">No invalid invoices</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button class="page-btn" (click)="invalidPrevPage()" [disabled]="invalidPage() <= 1">Prev</button>
+          <span class="page-info">Page {{ invalidPage() }} / {{ invalidTotalPages() }}</span>
+          <button class="page-btn" (click)="invalidNextPage()"
+            [disabled]="invalidPage() >= invalidTotalPages()">Next</button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</section>

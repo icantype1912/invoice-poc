@@ -138,6 +138,20 @@ namespace invoice_v1.src.Infrastructure.Repositories
             return (data, total);
         }
 
+        public async Task<FileChangeLog?> GetRecentUnhealthyLogAsync(Guid vendorId, string fileName, long fileSize, TimeSpan window)
+        {
+            var cutoff = DateTime.UtcNow.Subtract(window);
+            return await _context.FileChangeLogs
+                .AsNoTracking()
+                .Where(l => l.UploadedByVendorId == vendorId &&
+                           l.FileName == fileName &&
+                           l.FileSize == fileSize &&
+                           l.SecurityStatus == nameof(FileSecurityStatus.Unhealthy) &&
+                           l.DetectedAt >= cutoff)
+                .OrderByDescending(l => l.DetectedAt)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<FileChangeLog> CreateAsync(FileChangeLog log)
         {
             _context.FileChangeLogs.Add(log);

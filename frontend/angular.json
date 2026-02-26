@@ -1,72 +1,80 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
+  "cli": {
+    "packageManager": "npm",
+      "cache": {
+      "enabled": false
+    }
+  },
   "newProjectRoot": "projects",
   "projects": {
-    "invoice-frontend": {
+    "AvFrontEnd": {
       "projectType": "application",
       "schematics": {},
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
       "architect": {
-      "build": {
-        "builder": "@angular-devkit/build-angular:application",
-        "options": {
-          "outputPath": "dist/invoice-frontend",
-          "index": "src/index.html",
-          "browser": "src/main.ts",
-          "polyfills": ["zone.js"],
-          "tsConfig": "tsconfig.app.json",
-          "assets": [
-            {
-              "glob": "**/*",
-              "input": "public"
-            }
-          ],
-          "styles": ["src/styles.css"],
-          "scripts": []
-        },
-        "configurations": {
-          "production": {
-            "budgets": [
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
               {
-                "type": "initial",
-                "maximumWarning": "500kB",
-                "maximumError": "1MB"
-              },
-              {
-                "type": "anyComponentStyle",
-                "maximumWarning": "2kB",
-                "maximumError": "4kB"
+                "glob": "**/*",
+                "input": "public"
               }
             ],
-            "outputHashing": "all",
-            "optimization": true,
-            "sourceMap": false,
-            "namedChunks": false,
-            "aot": true,
-            "extractLicenses": true
+            "styles": [
+              "src/material-theme.scss",
+              "src/styles.css"
+            ],
+            "server": "src/main.server.ts",
+            "outputMode": "server",
+            "ssr": {
+              "entry": "src/server.ts"
+            }
           },
-          "development": {
-            "optimization": false,
-            "extractLicenses": false,
-            "sourceMap": true
-          }
-        },
-        "defaultConfiguration": "production"
-      },
-        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "invoice-frontend:build:production"
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kB",
+                  "maximumError": "16kB"
+                }
+              ],
+              "outputHashing": "all"
             },
             "development": {
-              "buildTarget": "invoice-frontend:build:development"
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "AvFrontEnd:build:production"
+            },
+            "development": {
+              "buildTarget": "AvFrontEnd:build:development"
             }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test"
         }
       }
     }

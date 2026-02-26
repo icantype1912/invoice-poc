@@ -1,138 +1,90 @@
 <section class="admin-page">
-  <div class="tabs">
-    <button class="tab-btn" [class.active]="activeTab() === 'users'" (click)="switchTab('users')">Users</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'jobs'" (click)="switchTab('jobs')">Jobs</button>
-    <button class="tab-btn" [class.active]="activeTab() === 'logs'" (click)="switchTab('logs')">Logs</button>
+
+  <div class="admin-toolbar">
+    <button class="refresh-btn" (click)="refresh()">Refresh</button>
   </div>
 
-  <!-- USERS TAB -->
-  @if (activeTab() === 'users') {
-    <div class="section">
-      <h2>Pending Approvals</h2>
-      @if (pendingUsers().length === 0) { <p>No pending users.</p> }
-      <div class="users-grid">
-        @for (user of pendingUsers(); track user.id) {
-          <div class="user-card pending">
-            <h3>{{ user.email }}</h3>
-            <p>Company: {{ user.companyName }}</p>
-            <div class="actions">
-              <button class="approve-btn" (click)="approveUser(user.id)">Approve</button>
-              <button class="reject-btn" (click)="rejectUser(user.id)">Reject</button>
-            </div>
-          </div>
+
+  <h2>Pending Approvals</h2>
+
+  <div class="table">
+
+    <div class="row header">
+      <div>Email</div>
+      <div>Company</div>
+      <div>Role</div>
+      <div>Status</div>
+      <div class="actions-col">Actions</div>
+    </div>
+
+    @for (user of pendingUsers(); track user.id) {
+    <div class="row">
+      <div>{{ user.email }}</div>
+      <div>{{ user.companyName ?? '—' }}</div>
+      <div class="role">{{ roleLabel(user.role) }}</div>
+      <div class="status">{{ statusLabel(user.status) }}</div>
+
+      <div class="actions">
+        <button (click)="approve(user.id)">Approve</button>
+        <button class="danger" (click)="reject(user.id)">Reject</button>
+      </div>
+    </div>
+    } @empty {
+    <p class="empty">No pending users</p>
+    }
+
+  </div>
+
+
+
+  <h2>All Users</h2>
+
+  <div class="table">
+
+    <div class="row header">
+      <div>Email</div>
+      <div>Company</div>
+      <div>Role</div>
+      <div>Status</div>
+      <div class="actions-col">Actions</div>
+    </div>
+
+    @for (user of users(); track user.id) {
+    <div class="row">
+
+      <div>{{ user.email }}</div>
+
+      <div>{{ user.companyName ?? '—' }}</div>
+
+      <div class="role">
+        {{ roleLabel(user.role) }}
+      </div>
+
+      <div class="status">
+        {{ statusLabel(user.status) }}
+      </div>
+
+      <div class="actions">
+
+        @if (!isCurrentUser(user.id) && user.role !== 0 && user.status === 1) {
+        <button (click)="promote(user.id)">Promote</button>
         }
+
+        @if (user.status === 3) {
+        <button (click)="unlock(user.id)">Unlock</button>
+        }
+
+        @if (!isCurrentUser(user.id)) {
+        <button class="danger" (click)="delete(user.id)">Delete</button>
+        }
+
       </div>
 
-      <h2 class="mt-32">All Users</h2>
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Last Login</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (user of allUsers(); track user.id) {
-              <tr>
-                <td>{{ user.email }}</td>
-                <td>{{ user.role }}</td>
-                <td>
-                  <span class="badge" [class]="user.status.toLowerCase()">{{ user.status }}</span>
-                </td>
-                <td>{{ formatDate(user.lastLoginAt) }}</td>
-                <td>
-                  @if (user.status === 'Locked') {
-                    <button (click)="unlockUser(user.id)">Unlock</button>
-                  }
-                  @if (!user.isSoftDeleted) {
-                    <button class="delete-btn" (click)="deleteUser(user.id)">Delete</button>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
     </div>
-  }
+    } @empty {
+    <p class="empty">No users found</p>
+    }
 
-  <!-- JOBS TAB -->
-  @if (activeTab() === 'jobs') {
-    <div class="section">
-      <div class="header-actions">
-        <h2>Job Queue</h2>
-        <button (click)="loadJobs()">Refresh</button>
-      </div>
-      
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Retries</th>
-            <th>Created</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (job of jobs(); track job.id) {
-            <tr>
-              <td>{{ job.id.substring(0,8) }}...</td>
-              <td>{{ job.jobType }}</td>
-              <td><span class="badge" [class]="job.status.toLowerCase()">{{ job.status }}</span></td>
-              <td>{{ job.retryCount }}</td>
-              <td>{{ formatDate(job.createdAt) }}</td>
-              <td>
-                @if (job.status === 'FAILED' || job.status === 'INVALID') {
-                  <button (click)="requeueJob(job.id)">Requeue</button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
+  </div>
 
-  <!-- LOGS TAB -->
-  @if (activeTab() === 'logs') {
-    <div class="section">
-      <div class="header-actions">
-        <h2>File Logs</h2>
-        <button (click)="loadLogs()">Refresh</button>
-      </div>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>File Name</th>
-            <th>Change Type</th>
-            <th>Detected At</th>
-            <th>Processed</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (log of logs(); track log.id) {
-            <tr>
-              <td>{{ log.fileName }}</td>
-              <td>{{ log.changeType }}</td>
-              <td>{{ formatDate(log.detectedAt) }}</td>
-              <td>{{ log.processed ? 'Yes' : 'No' }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      
-      <div class="pagination">
-        <button [disabled]="logPage() === 1" (click)="prevLogPage()">Prev</button>
-        <span>Page {{ logPage() }}</span>
-        <button (click)="nextLogPage()">Next</button>
-      </div>
-    </div>
-  }
 </section>

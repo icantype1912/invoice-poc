@@ -1,147 +1,88 @@
 <section class="upload-page">
-  <div class="upload-container">
-    <h1 class="title">Upload Invoice</h1>
-    <p class="subtitle">
-      Upload PDF or image files for automatic processing
-    </p>
+  <h1 class="title">Upload Documents</h1>
+  <p class="subtitle">
+    Securely upload your files to extract insights.
+  </p>
 
-    <!-- Drop Zone -->
-    <div
-      class="drop-zone"
-      [class.dragging]="isDragging()"
-      (dragover)="onDragOver($event)"
-      (dragleave)="onDragLeave($event)"
-      (drop)="onDrop($event)"
-    >
-      <div class="drop-zone-content">
-        <div class="upload-icon">📤</div>
-        <h3>Drag & drop files here</h3>
-        <p class="drop-hint">or click to browse</p>
-        
-        <input
-          type="file"
-          id="file-input"
-          class="file-input"
-          accept=".pdf,.jpg,.jpeg,.png,.webp"
-          multiple
-          (change)="onFileSelect($event)"
-        />
-        
-        <label for="file-input" class="browse-btn">
-          Choose Files
-        </label>
-
-        <p class="file-types">
-          Supported: PDF, JPG, PNG, WEBP (max 10MB each)
-        </p>
+  <div class="upload-card" [class.drag-over]="isDragOver" (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+    <div class="upload-content">
+      <div class="icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+          class="upload-icon">
+          <path d="M16 16l-4-4-4 4M12 12v9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </div>
-    </div>
 
-    <!-- Uploaded Files List -->
-    @if (uploadedFiles().length > 0) {
-      <div class="uploaded-files">
-        <div class="files-header">
-          <h3>Uploaded Files ({{ uploadedFiles().length }})</h3>
-          @if (!isUploading()) {
-            <button class="clear-btn" (click)="clearAll()">
-              Clear All
-            </button>
-          }
-        </div>
+      <p class="text">
+        Drag & drop your documents here
+      </p>
 
-        <div class="files-list">
-          @for (file of uploadedFiles(); track file.name) {
-            <div class="file-item" [class.uploading]="file.status === 'uploading'">
-              <div class="file-info">
-                <div 
-                  class="file-status-icon"
-                  [style.color]="getStatusColor(file.status)"
-                >
-                  {{ getStatusIcon(file.status) }}
-                </div>
-                
-                <div class="file-details">
-                  <div class="file-name">{{ file.name }}</div>
-                  <div class="file-meta">
-                    <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                    @if (file.status === 'uploading') {
-                      <span class="file-progress-text">{{ file.progress }}%</span>
-                    }
-                    @if (file.status === 'success') {
-                      <span class="file-success">✓ Uploaded</span>
-                    }
-                    @if (file.status === 'error') {
-                      <span class="file-error">{{ file.error || 'Upload failed' }}</span>
-                    }
-                  </div>
-                </div>
-              </div>
+      <p class="hint">
+        PDF, JPEG, PNG supported
+      </p>
 
-              <!-- Progress Bar -->
-              @if (file.status === 'uploading') {
-                <div class="progress-bar-container">
-                  <div 
-                    class="progress-bar-fill"
-                    [style.width.%]="file.progress"
-                  ></div>
-                </div>
-              }
+      <!-- Hidden file input -->
+      <input type="file" multiple hidden #fileInput accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelect($event)" />
 
-              <!-- Remove Button -->
-              @if (file.status !== 'uploading') {
-                <button 
-                  class="remove-btn"
-                  (click)="removeFile(file.name)"
-                >
-                  ✕
-                </button>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Action Buttons -->
-        @if (!isUploading() && hasSuccessfulUploads()) {
-          <div class="actions">
-            <button class="primary-btn" (click)="goToDashboard()">
-              View Dashboard →
-            </button>
-            <a routerLink="/admin" class="secondary-btn">
-              Monitor Processing
-            </a>
-          </div>
-        }
-      </div>
-    }
-
-    <!-- Instructions -->
-    <div class="instructions">
-      <h3>How it works</h3>
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h4>Upload Files</h4>
-            <p>Drag and drop or select invoice PDFs or images</p>
-          </div>
-        </div>
-        
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h4>AI Processing</h4>
-            <p>Our AI extracts invoice data automatically</p>
-          </div>
-        </div>
-        
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-content">
-            <h4>View Results</h4>
-            <p>Access structured data in your dashboard</p>
-          </div>
-        </div>
-      </div>
+      <!-- Simple browse button -->
+      <button class="browse-btn" (click)="fileInput.click()">
+        Browse Files
+      </button>
     </div>
   </div>
+
+  @if (files.length) {
+  <section class="files-section">
+    <h2 class="files-title">Uploaded Files</h2>
+
+    <div class="files-grid">
+      @for (item of files; track item.file.name) {
+      <div class="file-card" [class.done]="item.status() === 'done'" [class.rejected]="item.status() === 'rejected'">
+        <!-- Facade for completed files -->
+        @if (item.status() === 'done') {
+        <div class="facade"></div>
+        }
+
+        <div class="file-card-content">
+          <div class="file-icon">📄</div>
+
+          <div class="file-name">
+            {{ item.file.name }}
+          </div>
+
+          @if (item.status() === 'uploading') {
+          <div class="progress-bar">
+            <div class="progress" [style.width.%]="item.progress()"></div>
+          </div>
+          }
+
+          <div class="file-status" [class.status-done]="item.status() === 'done'"
+            [class.status-rejected]="item.status() === 'rejected'">
+            @if (item.status() === 'done') {
+            ✓ Uploaded
+            } @else if (item.status() === 'rejected') {
+            ✗ Rejected
+            } @else {
+            {{ item.status() }}
+            }
+          </div>
+
+          @if (item.status() === 'rejected' && item.rejectReason()) {
+          <div class="reject-reason">
+            {{ item.rejectReason() }}
+          </div>
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </section>
+  }
+
+
+
 </section>

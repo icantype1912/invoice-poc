@@ -1,5 +1,6 @@
 .hero {
-  min-height: calc(100vh - 64px); /* minus navbar */
+  min-height: calc(100vh - 64px);
+  /* minus navbar */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,10 +18,7 @@
   font-weight: 800;
   line-height: 1.3;
   margin-bottom: 32px;
-
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
 
@@ -36,63 +34,77 @@
   gap: 16px;
 }
 
+/* ============================= */
+/* BASE BUTTON */
+/* ============================= */
+
 .btn {
   position: relative;
   padding: 14px 28px;
   border-radius: 999px;
   font-size: 16px;
   cursor: pointer;
-  border: none;
+
+  border: 1px solid transparent;
 
   transition:
     transform 0.25s ease,
     box-shadow 0.25s ease,
-    background-position 0.4s ease;
+    background 0.3s ease,
+    border-color 0.3s ease;
 }
 
+
+/* ============================= */
+/* PRIMARY = PURPLE OUTLINE */
+/* ============================= */
 
 .primary {
-  background: var(--gradient-primary);
-  background-size: 200% 200%;
-  color: #000;
+  background: transparent;
+  color: var(--glow-purple);
 
-  box-shadow:
-    0 0 24px rgba(198, 43, 250, 0.877);
+  border: 1.5px solid var(--glow-purple);
 }
 
+/* hover glow */
 .primary:hover {
   transform: translateY(-3px);
-  background-position: 100% 50%;
+
+  background: rgba(168, 85, 247, 0.08);
 
   box-shadow:
-    0 0 48px var(--glow-purple),
-    0 3px 6px rgba(0, 0, 0, 0.4);
+    0 0 18px rgba(168, 85, 247, 0.25),
+    inset 0 0 12px rgba(168, 85, 247, 0.08);
 }
 
+/* active press */
 .primary:active {
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(0.98);
   box-shadow:
-    0 0 24px var(--glow-purple);
+    0 0 12px rgba(140, 120, 255, 0.3);
 }
 
+
+/* ============================= */
+/* SECONDARY */
+/* ============================= */
 
 .secondary {
-  background: var(--bg-elevated);
+  background: transparent;
+  border: 1.5px solid var(--text-primary);
   color: var(--text-primary);
   backdrop-filter: blur(10px);
-
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .secondary:hover {
   transform: translateY(-2px);
-  background: var(--bg);
-
-  box-shadow:
-    0 0 16px rgba(255, 255, 255, 0.12),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
 }
+
+
+/* ============================= */
+/* LIGHT SWEEP EFFECT */
+/* ============================= */
 
 .btn::after {
   content: '';
@@ -100,19 +112,17 @@
   inset: 0;
   border-radius: inherit;
 
-  background: linear-gradient(
-    120deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.35),
-    transparent 70%
-  );
+  background: linear-gradient(120deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.35),
+      transparent 70%);
 
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .primary:hover::after {
-  opacity: 0.4;
+  opacity: 0.3;
 }
 
 
@@ -121,7 +131,7 @@
   overflow: hidden;
 }
 
-/* Glow orbs */
+/* Glow orbs 
 .glow {
   position: absolute;
   width: 420px;
@@ -143,3 +153,4 @@
   right: -140px;
   background: var(--glow-purple);
 }
+*/

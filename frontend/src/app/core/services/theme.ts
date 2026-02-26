@@ -11,7 +11,6 @@ export class Theme {
   isDark = this._isDark.asReadonly();
 
   constructor() {
-    // start in dark mode (safe now)
     this.setDark(true);
   }
 

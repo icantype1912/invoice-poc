@@ -1,144 +1,95 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { JobService } from '../../core/services/job.service';
-import { AdminService } from '../../core/services/admin.service';
-import { LogsService } from '../../core/services/logs.service';
-import { Job } from '../../shared/models/job.model';
-import { User } from '../../shared/models/user.model';
-import { FileChangeLog } from '../../shared/models/log.model';
+import { Component, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Auth } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
+type User = {
+  id: string;
+  email: string;
+  companyName?: string;
+  role: number;
+  status: number;
+};
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './admin.html',
-  styleUrls: ['./admin.css'],
+  styleUrl: './admin.css',
 })
-export class Admin implements OnInit {
-  activeTab = signal<'jobs' | 'users' | 'logs'>('users');
-  
-  // Users
-  pendingUsers = signal<User[]>([]);
-  allUsers = signal<User[]>([]);
-  usersLoading = signal(false);
-  
-  // Jobs
-  jobs = signal<Job[]>([]);
-  jobsLoading = signal(false);
-  
-  // Logs
-  logs = signal<FileChangeLog[]>([]);
-  logsLoading = signal(false);
-  logPage = signal(1);
-  logTotal = signal(0);
+export class Admin {
 
-  constructor(
-    private adminService: AdminService,
-    private jobService: JobService,
-    private logsService: LogsService
-  ) {}
+  constructor(private http: HttpClient, public auth: Auth) { }
+
+  private api = environment.apiUrl + '/admin';
+
+
+  pendingUsers = signal<User[]>([]);
+  users = signal<User[]>([]);
 
   ngOnInit() {
+    this.refresh();
+  }
+
+  refresh() {
+    this.loadPending();
     this.loadUsers();
   }
 
-  switchTab(tab: 'jobs' | 'users' | 'logs') {
-    this.activeTab.set(tab);
-    if (tab === 'users') this.loadUsers();
-    if (tab === 'jobs') this.loadJobs();
-    if (tab === 'logs') this.loadLogs();
+  isCurrentUser(id: string) {
+    return this.auth.getUserId() === id;
   }
 
-  // --- Users ---
+
+  loadPending() {
+    this.http.get<User[]>(`${this.api}/users/pending`)
+      .subscribe(res => this.pendingUsers.set(res));
+  }
+
   loadUsers() {
-    this.usersLoading.set(true);
-    // Load Pending
-    this.adminService.getPendingUsers().subscribe({
-      next: (data) => this.pendingUsers.set(data),
-      error: (e) => console.error(e)
-    });
-    // Load All
-    this.adminService.getAllUsers().subscribe({
-      next: (data) => {
-        this.allUsers.set(data);
-        this.usersLoading.set(false);
-      },
-      error: (e) => {
-        console.error(e);
-        this.usersLoading.set(false);
-      }
-    });
+    this.http.get<User[]>(`${this.api}/users`)
+      .subscribe(res => this.users.set(res));
   }
 
-  approveUser(id: string) {
-    if(!confirm('Approve user?')) return;
-    this.adminService.approveUser(id).subscribe(() => this.loadUsers());
+  approve(id: string) {
+    this.http.post(`${this.api}/users/${id}/approve`, {})
+      .subscribe(() => this.refresh());
   }
 
-  rejectUser(id: string) {
-    const reason = prompt('Rejection reason:');
-    if (!reason) return;
-    this.adminService.rejectUser(id, reason).subscribe(() => this.loadUsers());
+  reject(id: string) {
+    this.http.post(`${this.api}/users/${id}/reject`, { reason: 'Rejected by admin' })
+      .subscribe(() => this.refresh());
   }
 
-  unlockUser(id: string) {
-    this.adminService.unlockUser(id).subscribe(() => {
-      alert('User unlocked');
-      this.loadUsers();
-    });
-  }
-  
-  deleteUser(id: string) {
-    if(!confirm('Delete user?')) return;
-    this.adminService.deleteUser(id).subscribe(() => this.loadUsers());
+  promote(id: string) {
+    this.http.post(`${this.api}/users/${id}/promote`, {})
+      .subscribe(() => this.refresh());
   }
 
-  // --- Jobs ---
-  loadJobs() {
-    this.jobsLoading.set(true);
-    this.jobService.getJobs(undefined, 1, 50).subscribe({
-      next: (res) => {
-        this.jobs.set(res.jobs);
-        this.jobsLoading.set(false);
-      }
-    });
+  delete(id: string) {
+    this.http.delete(`${this.api}/users/${id}`)
+      .subscribe(() => this.refresh());
   }
 
-  requeueJob(id: string) {
-    this.jobService.requeueJob(id).subscribe(() => {
-      alert('Job requeued');
-      this.loadJobs();
-    });
+  unlock(id: string) {
+    this.http.post(`${this.api}/users/${id}/unlock`, {})
+      .subscribe(() => this.refresh());
   }
 
-  // --- Logs ---
-  loadLogs() {
-    this.logsLoading.set(true);
-    this.logsService.getLogs(this.logPage(), 20).subscribe({
-      next: (res) => {
-        this.logs.set(res.logs);
-        this.logTotal.set(res.total);
-        this.logsLoading.set(false);
-      }
-    });
+  // ---------------- LABEL HELPERS ----------------
+
+  roleLabel(role: number) {
+    if (role === 0) return 'Admin';
+    if (role === 1) return 'Vendor';
+    return 'Unknown';
   }
 
-  nextLogPage() {
-    this.logPage.update(p => p + 1);
-    this.loadLogs();
-  }
-  
-  prevLogPage() {
-    if(this.logPage() > 1) {
-      this.logPage.update(p => p - 1);
-      this.loadLogs();
-    }
-  }
-
-  // Helpers
-  formatDate(date: string | null) {
-    if (!date) return '-';
-    return new Date(date).toLocaleString();
+  statusLabel(status: number) {
+    if (status === 0) return 'Pending';
+    if (status === 1) return 'Approved';
+    if (status === 2) return 'Rejected';
+    if (status === 3) return 'Locked';
+    return 'Unknown';
   }
 }
+

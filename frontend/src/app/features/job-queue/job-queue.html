@@ -1,0 +1,104 @@
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Job Queue</h1>
+      <p class="page-subtitle">Background processing tasks and status</p>
+    </div>
+    <div class="header-actions">
+      <button class="action-btn" (click)="refresh()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="section-panel">
+    <div class="section-body" style="padding-top: 22px;">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="align-center">ID</th>
+                <th class="align-center">Type</th>
+                <th class="align-center">Status</th>
+                <th class="align-center">Retries</th>
+                @if (isAdmin) { <th class="align-center">Locked By</th> }
+                @if (isAdmin) { <th class="align-center">Locked At</th> }
+                @if (isAdmin) { <th class="align-center">Next Retry</th> }
+                <th class="align-center">Created</th>
+                <th class="align-center">Updated</th>
+                <th class="align-center">Error</th>
+                @if (isAdmin) { <th class="align-center">Actions</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (job of jobs(); track job.id) {
+              <tr [class.selected]="selectedJob()?.id === job.id" (click)="selectedJob.set(job)">
+                <td class="mono muted align-center" [title]="job.id">...{{ job.id.slice(-8) }}</td>
+                <td class="mono muted align-center">{{ job.jobType }}</td>
+                <td class="align-center">
+                  <span class="status-badge" [class.pending]="job.status === 'PENDING'"
+                    [class.processing]="job.status === 'PROCESSING'" [class.failed]="job.status === 'FAILED'"
+                    [class.completed]="job.status === 'COMPLETED'" [class.invalid]="job.status === 'INVALID'">
+                    {{ job.status }}
+                  </span>
+                </td>
+                <td class="align-center">{{ job.retryCount }}</td>
+                @if (isAdmin) { <td class="mono muted align-center">{{ job.lockedBy || '-' }}</td> }
+                @if (isAdmin) { <td class="muted align-center">{{ job.lockedAt ? (job.lockedAt | date:'short') : '-' }}
+                </td> }
+                @if (isAdmin) { <td class="muted align-center">{{ job.nextRetryAt ? (job.nextRetryAt | date:'short') :
+                  '-' }}</td> }
+                <td class="muted align-center">{{ job.createdAt | date:'short' }}</td>
+                <td class="muted align-center">{{ job.updatedAt | date:'short' }}</td>
+                <td class="align-center error-cell" [title]="formatError(job.errorMessage)">
+                  {{ formatError(job.errorMessage) || '-' }}
+                </td>
+                @if (isAdmin) {
+                <td class="align-center">
+                  <button class="action-btn" style="margin-right: 8px;"
+                    (click)="selectedJob.set(job); $event.stopPropagation()">View Details</button>
+                  @if (job.status === 'INVALID' || job.status === 'FAILED') {
+                  <button class="action-btn danger"
+                    (click)="requeueJob(job.id); $event.stopPropagation()">Requeue</button>
+                  }
+                </td>
+                }
+              </tr>
+              }
+              @if (!jobs().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 11 : 7" class="empty-cell">No jobs found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button class="page-btn" (click)="prevPage()" [disabled]="page() === 1">Prev</button>
+        <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Closable Details View -->
+  @if (selectedJob()) {
+  <div class="details-panel">
+    <div class="details-header">
+      <h3>Job Details</h3>
+      <button class="close-btn" (click)="closeJob()" title="Close Details">✕</button>
+    </div>
+    <div class="details-body">
+      <div class="detail-grid">
+        @for (entry of getPayloadEntries(selectedJob()?.payloadJson); track entry.key) {
+        <div class="detail-item">
+          <span class="detail-label">{{ entry.key }}</span>
+          <span class="detail-value mono">{{ entry.value }}</span>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+  }
+</section>

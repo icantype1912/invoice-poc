@@ -1,0 +1,28 @@
+name: Backend Worker CI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest 
+    steps:
+    - name: Login to GHCR
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u icantype1912 --password-stdin
+    - uses: actions/checkout@v4
+    - name: Build backend Image
+      run: |
+        docker build -t ghcr.io/icantype1912/backend:latest ./backend
+        docker push ghcr.io/icantype1912/backend:latest
+    - name: Build worker image
+      run: |
+        docker build -t ghcr.io/icantype1912/worker:latest ./worker
+        docker push ghcr.io/icantype1912/worker:latest
+
+
+  

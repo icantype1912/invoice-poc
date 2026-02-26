@@ -75,28 +75,41 @@ namespace invoice_v1.src.Application.Services
             // 5. IF UNHEALTHY — no Drive upload, log and reject
             if (!pipelineResult.IsHealthy)
             {
-                var unhealthyLog = new FileChangeLog
+                // DE-DUPLICATION: Check if we already logged this rejection recently (last 30 seconds)
+                var recentLog = await _fileChangeLogRepository.GetRecentUnhealthyLogAsync(
+                    vendorId, originalFileName, file.Length, TimeSpan.FromSeconds(30));
+
+                if (recentLog == null)
                 {
-                    FileId = $"rejected_{Guid.NewGuid()}",
-                    FileName = originalFileName,
-                    ChangeType = "Upload",
-                    MimeType = file.ContentType,
-                    FileSize = file.Length,
-                    UploadedByVendorId = vendorId,
-                    DetectedAt = DateTime.UtcNow,
-                    Processed = true,
-                    ProcessedAt = DateTime.UtcNow,
-                    SecurityStatus = nameof(FileSecurityStatus.Unhealthy),
-                    SecurityFailReason = pipelineResult.FailReason,
-                    SecurityCheckedAt = DateTime.UtcNow
-                };
+                    var unhealthyLog = new FileChangeLog
+                    {
+                        FileId = $"rejected_{Guid.NewGuid()}",
+                        FileName = originalFileName,
+                        ChangeType = "Upload",
+                        MimeType = file.ContentType,
+                        FileSize = file.Length,
+                        UploadedByVendorId = vendorId,
+                        DetectedAt = DateTime.UtcNow,
+                        Processed = true,
+                        ProcessedAt = DateTime.UtcNow,
+                        SecurityStatus = nameof(FileSecurityStatus.Unhealthy),
+                        SecurityFailReason = pipelineResult.FailReason,
+                        SecurityCheckedAt = DateTime.UtcNow
+                    };
 
-                await _fileChangeLogRepository.CreateAsync(unhealthyLog);
-                await _fileChangeLogRepository.SaveChangesAsync();
+                    await _fileChangeLogRepository.CreateAsync(unhealthyLog);
+                    await _fileChangeLogRepository.SaveChangesAsync();
 
-                _logger.LogWarning(
-                    "SECURITY: File {FileName} from vendor {VendorId} marked UNHEALTHY. Reason: {Reason}",
-                    originalFileName, vendorId, pipelineResult.FailReason);
+                    _logger.LogWarning(
+                        "SECURITY: File {FileName} from vendor {VendorId} marked UNHEALTHY. Reason: {Reason}",
+                        originalFileName, vendorId, pipelineResult.FailReason);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "SECURITY: Redundant rejection for {FileName} (Vendor: {VendorId}). Skipping log creation.",
+                        originalFileName, vendorId);
+                }
 
                 return new UploadResult
                 {
@@ -136,7 +149,10 @@ namespace invoice_v1.src.Application.Services
                 Processed = false,
                 SecurityStatus = nameof(FileSecurityStatus.Healthy),
                 SecurityFailReason = null,
-                SecurityCheckedAt = DateTime.UtcNow
+                SecurityCheckedAt = DateTime.UtcNow,
+                // SYNC: Capture real modified time from Drive to prevent Monitor bloat
+                // FIX: Ensure UTC kind for PostgreSQL compatibility
+                GoogleDriveModifiedTime = driveFile.ModifiedTime?.ToUniversalTime()
             };
 
             await _fileChangeLogRepository.CreateAsync(healthyLog);

@@ -101,9 +101,10 @@ namespace invoice_v1.src.Services
                         _deletedFiles.TryAdd(file.FileId!, true);
                         deletedCount++;
                     }
-                    else if (file.ModifiedTime != default)
+                    else if (file.ModifiedTime != default || file.LatestChangeType == "Upload")
                     {
-                        _lastSeenFiles.TryAdd(file.FileId!, ToUtc(file.ModifiedTime));
+                        // If we have a time, track it. If not (API upload), track with min value to trigger DB check logic in DoWork
+                        _lastSeenFiles.TryAdd(file.FileId!, file.ModifiedTime != default ? ToUtc(file.ModifiedTime) : DateTime.MinValue);
                         activeCount++;
                     }
                 }
@@ -194,43 +195,58 @@ namespace invoice_v1.src.Services
                 var modifiedBy = ResolveModifiedBy(file);
                 var vendorId = ResolveVendorId(file);
 
+                // Fetch existing info if possible to preserve FileName and VendorId
+                var existingLog = await dbContext.FileChangeLogs
+                    .Where(l => l.FileId == file.Id)
+                    .OrderByDescending(l => l.DetectedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var resolvedFileName = existingLog?.FileName ?? file.Name;
+                var resolvedVendorId = existingLog?.UploadedByVendorId ?? vendorId;
+
                 // Scenario: Restored
                 if (_deletedFiles.ContainsKey(file.Id))
                 {
-                    _logger.LogInformation("Restored file detected: {FileName}", file.Name);
+                    _logger.LogInformation("Restored file detected: {FileName}", resolvedFileName);
                     _deletedFiles.TryRemove(file.Id, out _);
-                    logsToAdd.Add(CreateLog(file, "Upload", fileModifiedTime, modifiedBy, vendorId));
-                    _lastSeenFiles.TryAdd(file.Id, fileModifiedTime);
+                    logsToAdd.Add(CreateLog(file.Id, resolvedFileName, "Upload", fileModifiedTime, modifiedBy, resolvedVendorId, file.MimeType, file.Size));
+                    _lastSeenFiles[file.Id] = fileModifiedTime;
                     continue;
                 }
 
                 // Scenario: New File (POTENTIAL DUPLICATE)
-                if (!_lastSeenFiles.ContainsKey(file.Id))
+                if (!_lastSeenFiles.TryGetValue(file.Id, out var lastSeenTime))
                 {
-                    // --- FIX START: Check DB to prevent double logging ---
-                    // Since HydrateDictionary only runs at startup, a file uploaded via API *during* runtime 
-                    // won't be in _lastSeenFiles immediately. We must check the DB.
-                    var existsInDb = await dbContext.FileChangeLogs
-                        .AnyAsync(l => l.FileId == file.Id, cancellationToken);
-
-                    if (existsInDb)
+                    // CRITICAL: We avoid creating a new log if one already exists for this FileId.
+                    // This prevents redundancy with the API upload logs.
+                    if (existingLog != null)
                     {
-                        // File exists in DB (uploaded via frontend), so we just track it in memory
-                        // and skip creating a new log entry.
+                        _logger.LogDebug("File {FileId} already exists in DB, skipping new log creation", file.Id);
                         _lastSeenFiles.TryAdd(file.Id, fileModifiedTime);
                         continue;
                     }
-                    // --- FIX END ---
 
-                    _logger.LogInformation("New file detected: {FileName}", file.Name);
-                    logsToAdd.Add(CreateLog(file, "Upload", fileModifiedTime, modifiedBy, vendorId));
+                    // Only log if it's truly new to both memory and DB.
+                    // However, the user specifically asked for DriveMonitoringService to NOT make logs 
+                    // that conflict with the security pipeline (VendorInvoiceService).
+                    // We will skip "Upload" logs from the monitoring service entirely if we want to be safe,
+                    // but usually we want to detect files manually dropped into Drive.
+                    // For now, we'll keep the check against existingLog which should satisfy the bloat issue.
+                    _logger.LogInformation("New file detected by monitor: {FileName}", resolvedFileName);
+                    logsToAdd.Add(CreateLog(file.Id, resolvedFileName, "Upload", fileModifiedTime, modifiedBy, resolvedVendorId, file.MimeType, file.Size));
                     _lastSeenFiles.TryAdd(file.Id, fileModifiedTime);
                 }
                 // Scenario: Modified File
-                else if (_lastSeenFiles.TryGetValue(file.Id, out var lastSeenTime) && lastSeenTime < fileModifiedTime)
+                // Use a 1-second tolerance to account for precision differences between Drive/DB/Local
+                else if (fileModifiedTime > lastSeenTime.AddSeconds(1) && lastSeenTime != DateTime.MinValue)
                 {
-                    _logger.LogInformation("File modified: {FileName}", file.Name);
-                    logsToAdd.Add(CreateLog(file, "Modified", fileModifiedTime, modifiedBy, vendorId));
+                    _logger.LogInformation("File modified: {FileName}", resolvedFileName);
+                    logsToAdd.Add(CreateLog(file.Id, resolvedFileName, "Modified", fileModifiedTime, modifiedBy, resolvedVendorId, file.MimeType, file.Size));
+                    _lastSeenFiles[file.Id] = fileModifiedTime;
+                }
+                else if (lastSeenTime == DateTime.MinValue)
+                {
+                    // Was tracked as MinValue during hydration, update to real time now
                     _lastSeenFiles[file.Id] = fileModifiedTime;
                 }
             }
@@ -255,20 +271,23 @@ namespace invoice_v1.src.Services
         }
 
         private FileChangeLog CreateLog(
-            Google.Apis.Drive.v3.Data.File file,
+            string fileId,
+            string fileName,
             string changeType,
             DateTime modifiedTime,
             string modifiedBy,
-            Guid? vendorId)
+            Guid? vendorId,
+            string? mimeType,
+            long? fileSize)
         {
             return new FileChangeLog
             {
-                FileName = file.Name,
-                FileId = file.Id,
+                FileName = fileName,
+                FileId = fileId,
                 ChangeType = changeType,
                 DetectedAt = DateTime.UtcNow,
-                MimeType = file.MimeType,
-                FileSize = file.Size,
+                MimeType = mimeType,
+                FileSize = fileSize,
                 ModifiedBy = modifiedBy,
                 UploadedByVendorId = vendorId,
                 GoogleDriveModifiedTime = modifiedTime,

@@ -1,108 +1,199 @@
+/* ─── Navbar ───────────────────────────────────────────────────────── */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  padding: 14px 24px;
-
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(14px);
-
+  padding: 0 24px;
+  height: 56px;
+  background: var(--avevapurple);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 100;
 }
 
 .left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 4px;
 }
 
 .logo {
-  font-weight: 700;
-  font-size: 18px;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.logo:hover{
-  cursor:pointer;
-}
-
-a {
-  color: var(--text-muted);
-  text-decoration: none;
-}
-
-a:hover {
-  color: var(--text-primary);
-}
-
-/* ---------- THEME TOGGLE ---------- */
-
-.theme-toggle {
-  position: relative;
-  width: 56px;
-  height: 28px;
-
-  border-radius: 999px;
-  border: none;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  margin-right: 12px;
   cursor: pointer;
-
-  background: var(--bg-elevated);
-  backdrop-filter: blur(10px);
-
-  box-shadow:
-    0 0 12px rgba(0, 0, 0, 0.25),
-    inset 0 0 6px rgba(255, 255, 255, 0.05);
 }
 
-.theme-toggle .icon {
-  position: absolute;
-  top: 6px;
-  font-size: 14px;
-  pointer-events: none;
+.logo.disabled {
+  cursor: default;
 }
 
-.my-toggle {
-  --mdc-switch-selected-track-color: rgb(50, 219, 166);
-  --mdc-switch-selected-handle-color: white;
-  --mdc-switch-unselected-track-color: #ccc;
+.logo img {
+  height: 30px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  transition: opacity 0.2s ease;
 }
 
-/* Logout Button */
-button {
-  padding: 6px 14px;
-  margin-left: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 80, 80, 0.4);
-  background: transparent;
-  color: #ff5a5a;
-  font-size: 14px;
+.logo img:hover {
+  opacity: 0.85;
+}
+
+/* ─── Nav Links ─────────────────────────────────────────────────── */
+.nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 13px;
   font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.nav-link:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ─── Right Section ─────────────────────────────────────────────── */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ─── Theme Toggle ──────────────────────────────────────────────── */
+.theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-/* Hover */
-button:hover {
-  background: rgba(255, 80, 80, 0.1);
-  border-color: #ff5a5a;
-  transform: translateY(-1px);
+.theme-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: scale(1.05);
 }
 
-/* Click press effect */
-button:active {
-  transform: translateY(0);
-  opacity: 0.8;
+.theme-btn svg {
+  transition: transform 0.3s ease;
 }
 
-body.dark button {
-  border-color: rgba(255,120,120,0.6);
-  color: #ff8080;
+.theme-btn:hover svg {
+  transform: rotate(15deg);
 }
 
-a.active {
-  color: var(--glow-purple);
-  font-weight: 600;
+/* ─── Avatar ────────────────────────────────────────────────────── */
+.user-menu {
+  position: relative;
+}
+
+.avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.avatar-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.06);
+}
+
+/* ─── Dropdown ──────────────────────────────────────────────────── */
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: dropdown-in 0.15s ease;
+  z-index: 200;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-role {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dropdown-role strong {
+  color: var(--text-primary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.logout-item {
+  color: #ff5a5a;
+}
+
+.logout-item:hover {
+  background: rgba(255, 80, 80, 0.08);
 }

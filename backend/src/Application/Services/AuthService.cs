@@ -32,8 +32,13 @@ namespace invoice_v1.src.Application.Services
 
         public async Task SignupAsync(SignupRequest request)
         {
-            if (await _userRepository.EmailExistsAsync(request.Email))
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+            if (existingUser != null)
             {
+                if (existingUser.IsSoftDeleted)
+                {
+                    throw new InvalidOperationException("Prohibited to register contact admin");
+                }
                 throw new InvalidOperationException("Email is already registered");
             }
 

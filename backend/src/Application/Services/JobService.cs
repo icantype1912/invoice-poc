@@ -145,38 +145,26 @@ namespace invoice_v1.src.Application.Services
             var job = await _jobQueueRepository.GetByIdAsync(jobId);
             if (job == null) throw new InvalidOperationException($"Job {jobId} not found");
 
-            // LOGIC: Exponential Backoff Strategy
-            if (job.RetryCount < MaxRetries)
-            {
-                job.RetryCount++;
+            // Final State: INVALID (was FAILED)
+            // The worker handles retry scheduling internally (Status=PENDING).
+            // If the worker sends a FAILED callback, it means it's a permanent failure 
+            // or max retries were reached.
+            // We transition this to INVALID so it appears in the Invalid Invoices view.
+            job.Status = nameof(JobStatus.INVALID);
+            job.ErrorMessage = errorDetails;
+            job.NextRetryAt = null;
+            job.LockedBy = null;
+            job.LockedAt = null;
+            job.UpdatedAt = DateTime.UtcNow;
 
-                // Exponential Backoff: 2^(n-1) minutes -> 1, 2, 4 minutes
-                var delayMinutes = Math.Pow(2, job.RetryCount - 1);
+            await _jobQueueRepository.UpdateAsync(job);
+            await _jobQueueRepository.SaveChangesAsync();
 
-                job.Status = nameof(JobStatus.PENDING); // Set back to PENDING for retry service
-                job.NextRetryAt = DateTime.UtcNow.AddMinutes(delayMinutes);
-                job.ErrorMessage = errorDetails;
+            // Create entry in invalid_invoice for user visibility
+            await CreateInvalidInvoiceFromJobAsync(jobId, errorDetails);
 
-                // Unlock the job so it can be picked up
-                job.LockedBy = null;
-                job.LockedAt = null;
-                job.UpdatedAt = DateTime.UtcNow;
-
-                await _jobQueueRepository.UpdateAsync(job);
-                await _jobQueueRepository.SaveChangesAsync();
-
-                _logger.LogWarning(
-                    "Job {JobId} failed. Scheduled retry {RetryCount}/{MaxRetries} in {Delay} minutes. Error: {Error}",
-                    jobId, job.RetryCount, MaxRetries, delayMinutes, errorDetails.RootElement.ToString());
-            }
-            else
-            {
-                // Max retries hit -> Mark as INVALID (Final State)
-                _logger.LogError("Job {JobId} hit max retries ({Max}). Marking as INVALID.", jobId, MaxRetries);
-
-                await MarkInvalidAsync(jobId, errorDetails);
-                await CreateInvalidInvoiceFromJobAsync(jobId, errorDetails);
-            }
+            _logger.LogError("Job {JobId} reached permanent failure and was marked as INVALID. Reason: {Error}", 
+                jobId, errorDetails.RootElement.ToString());
         }
 
         public async Task MarkInvalidAsync(Guid jobId, JsonDocument reasonDetails)

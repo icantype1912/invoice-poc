@@ -1,0 +1,55 @@
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Products</h1>
+      <p class="page-subtitle">All processed products and their sales</p>
+    </div>
+  </div>
+  <div class="section-panel">
+    <div class="section-body" style="padding-top: 22px;">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                @if (isAdmin) { <th class="align-center">Product ID</th> }
+                <th class="align-center">Product Name</th>
+                <th class="align-center">Category</th>
+                <th class="align-center">Unit Rate</th>
+                <th class="align-center">Qty Sold</th>
+                @if (isAdmin) { <th class="align-center">Revenue</th> }
+                <th class="align-center">Invoices</th>
+                <th class="align-center">Last Sold</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of products(); track p.productId) {
+              <tr>
+                @if (isAdmin) { <td class="mono muted align-center" [title]="p.productId">{{ p.productId }}</td> }
+                <td class="font-medium align-center" [title]="p.productName">{{ p.productName }}</td>
+                <td class="align-center"><span class="tag">{{ p.category }}</span></td>
+                <td class="align-center">{{ p.defaultUnitRate | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td class="align-center muted">{{ p.totalQuantitySold }}</td>
+                @if (isAdmin) { <td class="align-center font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0'
+                  }}</td> }
+                <td class="align-center muted">{{ p.invoiceCount }}</td>
+                <td class="align-center muted">{{ p.lastSoldDate | date:'mediumDate' }}</td>
+              </tr>
+              }
+              @if (!products().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 8 : 6" class="empty-cell">No products found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="pagination">
+        <button class="page-btn" (click)="prevPage()" [disabled]="page() === 1">Prev</button>
+        <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+      </div>
+    </div>
+  </div>
+</section>

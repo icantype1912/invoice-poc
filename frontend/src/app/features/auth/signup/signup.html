@@ -1,77 +1,96 @@
 <section class="auth-page">
   <div class="auth-card">
     <h1 class="auth-title">Create Account</h1>
-    <p class="auth-subtitle">Start turning documents into intelligence</p>
+    <p class="auth-subtitle">
+      Start turning documents into intelligence
+    </p>
 
-    @if (successMessage) {
-      <div class="alert alert-success">{{ successMessage }}</div>
-    }
-    @if (errorMessage) {
-      <div class="alert alert-error">{{ errorMessage }}</div>
+    @if (errorMessage()) {
+    <div class="error-banner">
+      {{ errorMessage() }}
+    </div>
     }
 
+    @if (successMessage()) {
+    <div class="success-banner">
+      {{ successMessage() }}
+    </div>
+    }
+
+    @if (!successMessage()) {
     <form (ngSubmit)="signup()" autocomplete="off">
-      <!-- Required Fields -->
       <div class="field">
-        <label>Email <span class="required">*</span></label>
-        <input
-          type="email"
-          [(ngModel)]="email"
-          name="signup-email"
-          autocomplete="username"
-          required
-          placeholder="you@example.com"
-          [disabled]="loading"
-        />
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" name="signup-email" autocomplete="username" required
+          placeholder="you@example.com" />
       </div>
 
       <div class="field">
-        <label>Company Name <span class="required">*</span></label>
-        <input
-          type="text"
-          [(ngModel)]="companyName"
-          name="company-name"
-          required
-          placeholder="Your Company Ltd."
-          [disabled]="loading"
-        />
+        <label>Company</label>
+        <input type="text" [(ngModel)]="company" name="company" required placeholder="Company name" />
       </div>
 
       <div class="field">
-        <label>Password <span class="required">*</span></label>
-        <input
-          type="password"
-          [(ngModel)]="password"
-          name="new-password"
-          autocomplete="new-password"
-          required
-          placeholder="••••••••"
-          [disabled]="loading"
-        />
-        <p class="field-hint">Min. 8 characters, 1 uppercase, 1 lowercase, 1 digit, 1 special character</p>
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="new-password"
+            autocomplete="new-password" required placeholder="••••••••" />
+          <button type="button" class="eye-btn" (click)="togglePassword()" aria-label="Toggle password visibility">
+            @if (showPassword()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            }
+          </button>
+        </div>
+        <span class="field-hint">Min 8 chars, include uppercase, lowercase, digit & special char</span>
       </div>
 
       <div class="field">
-        <label>Confirm Password <span class="required">*</span></label>
-        <input
-          type="password"
-          [(ngModel)]="confirmPassword"
-          name="confirm-new-password"
-          autocomplete="new-password"
-          required
-          placeholder="••••••••"
-          [disabled]="loading"
-        />
+        <label>Confirm Password</label>
+        <div class="password-wrapper">
+          <input [type]="showConfirmPassword() ? 'text' : 'password'" [(ngModel)]="confirmPassword"
+            name="confirm-new-password" autocomplete="new-password" required placeholder="••••••••" />
+          <button type="button" class="eye-btn" (click)="toggleConfirmPassword()"
+            aria-label="Toggle password visibility">
+            @if (showConfirmPassword()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            }
+          </button>
+        </div>
       </div>
 
-      <button class="auth-btn" type="submit" [disabled]="loading">
-        {{ loading ? 'Creating Account...' : 'Sign Up' }}
+      <button class="auth-btn" type="submit" [disabled]="isLoading()">
+        {{ isLoading() ? 'Creating account…' : 'Sign Up' }}
       </button>
     </form>
+    }
 
     <p class="switch">
       Already have an account?
-      <a routerLink="/login">Log in</a>
+      <a routerLink="/login">Login</a>
     </p>
   </div>
 </section>
