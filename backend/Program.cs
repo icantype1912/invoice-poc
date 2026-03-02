@@ -75,6 +75,7 @@ builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IFileChangeLogRepository, FileChangeLogRepository>();
 builder.Services.AddScoped<IInvalidInvoiceRepository, InvalidInvoiceRepository>();
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<IDbContextFacade, DbContextFacade>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
