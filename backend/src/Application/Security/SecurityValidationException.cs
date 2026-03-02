@@ -6,7 +6,12 @@ namespace invoice_v1.src.Application.Security
     {
         public SecurityFailReason FailCode { get; }
 
-        public SecurityValidationException(string message, SecurityFailReason failCode)
-            : base(message) => FailCode = failCode;
+        public SecurityValidationException(
+            string message,
+            SecurityFailReason failCode)
+            : base(message)
+        {
+            FailCode = failCode;
+        }
     }
 }

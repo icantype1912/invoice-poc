@@ -29,6 +29,21 @@ namespace invoice_v1.src.Infrastructure.Data
             ConfigureInvoice(modelBuilder);
             ConfigureInvoiceLine(modelBuilder);
             ConfigureInvalidInvoice(modelBuilder);
+
+            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                modelBuilder.Entity<InvalidInvoice>()
+                    .Ignore(e => e.Reason);
+
+                modelBuilder.Entity<JobQueue>()
+                    .Ignore(e => e.PayloadJson);
+
+                modelBuilder.Entity<JobQueue>()
+                    .Ignore(e => e.ErrorMessage);
+
+                modelBuilder.Entity<Invoice>()
+                    .Ignore(e => e.ExtractedDataJson);
+            }
         }
 
         private static void ConfigureUser(ModelBuilder modelBuilder)

@@ -50,7 +50,7 @@ namespace invoice_v1.src.Application.Security
             }
         }
 
-        private static Task<int> EstimatePdfTokensAsync(IFormFile file)
+        protected virtual Task<int> EstimatePdfTokensAsync(IFormFile file)
         {
             using var stream = file.OpenReadStream();
             using var memoryStream = new MemoryStream();
@@ -75,7 +75,7 @@ namespace invoice_v1.src.Application.Security
             return Task.FromResult(tokens);
         }
 
-        private static async Task<int> EstimateImageTokensAsync(IFormFile file)
+        protected virtual async Task<int> EstimateImageTokensAsync(IFormFile file)
         {
             using var stream = file.OpenReadStream();
             using var image = await Image.LoadAsync(stream);
