@@ -1,0 +1,82 @@
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">File Change Logs</h1>
+      <p class="page-subtitle">Track file activities and security checks</p>
+    </div>
+  </div>
+
+  <div class="section-panel">
+    <div class="section-body" style="padding-top: 22px;">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                @if (isAdmin) { <th class="align-center">ID</th> }
+                <th class="align-center">File Name</th>
+                <th class="align-center">Size (Bytes)</th>
+                <th class="align-center">Security</th>
+                @if (isAdmin) { <th class="align-center">Fail Reason</th> }
+                @if (isAdmin) { <th class="align-center">File ID</th> }
+                <th class="align-center">Change Type</th>
+                <th class="align-center">Detected</th>
+                @if (isAdmin) { <th class="align-center">MIME Type</th> }
+                <th class="align-center">Processed</th>
+                @if (isAdmin) { <th class="align-center">Processed At</th> }
+                @if (isAdmin) { <th class="align-center">Modified By</th> }
+                @if (isAdmin) { <th class="align-center">Drive Modified</th> }
+                @if (isAdmin) { <th class="align-center">Security Checked</th> }
+                @if (isAdmin) { <th class="align-center">Vendor ID</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs(); track log.id) {
+              <tr>
+                @if (isAdmin) { <td class="mono muted align-center">{{ log.id }}</td> }
+                <td class="font-medium file-name-cell align-center" [title]="log.fileName">{{ log.fileName }}</td>
+                <td class="align-center muted">{{ log.fileSize }}</td>
+                <td class="align-center">
+                  <span class="status-badge" [class.healthy]="log.securityStatus === 'Healthy'"
+                    [class.unhealthy]="log.securityStatus !== 'Healthy'">
+                    {{ log.securityStatus || 'Unknown' }}
+                  </span>
+                </td>
+                @if (isAdmin) { <td class="muted align-center">{{ log.securityFailReason || '-' }}</td> }
+                @if (isAdmin) { <td class="mono muted align-center" [title]="log.fileId">{{ log.fileId || '-' }}</td> }
+                <td class="align-center"><span class="tag">{{ log.changeType }}</span></td>
+                <td class="muted align-center">{{ log.detectedAt | date:'short' }}</td>
+                @if (isAdmin) { <td class="mono muted align-center">{{ log.mimeType }}</td> }
+                <td class="align-center">
+                  <span class="status-badge" [class.healthy]="log.processed" [class.unhealthy]="!log.processed">
+                    {{ log.processed ? 'Yes' : 'No' }}
+                  </span>
+                </td>
+                @if (isAdmin) { <td class="muted align-center">{{ log.processedAt ? (log.processedAt | date:'short') :
+                  '-' }}</td> }
+                @if (isAdmin) { <td class="muted align-center" [title]="log.modifiedBy">{{ log.modifiedBy || '-' }}</td>
+                }
+                @if (isAdmin) { <td class="muted align-center">{{ log.googleDriveModifiedTime | date:'short' }}</td> }
+                @if (isAdmin) { <td class="muted align-center">{{ log.securityCheckedAt ? (log.securityCheckedAt |
+                  date:'short') : '-' }}</td> }
+                @if (isAdmin) { <td class="mono muted align-center">{{ log.uploadedByVendorId || '-' }}</td> }
+              </tr>
+              }
+              @if (!logs().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 15 : 6" class="empty-cell">No logs found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button class="page-btn" (click)="prevPage()" [disabled]="page() === 1">Prev</button>
+        <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+      </div>
+    </div>
+  </div>
+</section>

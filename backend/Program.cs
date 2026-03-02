@@ -74,6 +74,7 @@ builder.Services.AddScoped<IFileChangeLogRepository, FileChangeLogRepository>();
 builder.Services.AddScoped<IInvalidInvoiceRepository, InvalidInvoiceRepository>();
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+builder.Services.AddScoped<IDbContextFacade, DbContextFacade>();
 
 // --- 5. DEPENDENCY INJECTION - APPLICATION SERVICES ---
 builder.Services.AddScoped<IAuthService, AuthService>();

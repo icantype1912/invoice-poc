@@ -14,7 +14,7 @@ namespace invoice_v1.src.Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IFileChangeLogRepository _fileChangeLogRepository;
         private readonly IJobRepository _jobRepository;
-        private readonly ApplicationDbContext _context;
+        private readonly IDbContextFacade _db;
         private readonly ILogger<InvoiceService> _logger;
 
         public InvoiceService(
@@ -22,25 +22,25 @@ namespace invoice_v1.src.Application.Services
             IProductRepository productRepository,
             IFileChangeLogRepository fileChangeLogRepository,
             IJobRepository jobRepository,
-            ApplicationDbContext context,
+            IDbContextFacade db,
             ILogger<InvoiceService> logger)
         {
             _invoiceRepository = invoiceRepository;
             _productRepository = productRepository;
             _fileChangeLogRepository = fileChangeLogRepository;
             _jobRepository = jobRepository;
-            _context = context;
+            _db = db;
             _logger = logger;
         }
 
         public async Task<InvoiceDto> CreateOrUpdateInvoiceFromCallbackAsync(Guid jobId, object result)
         {
             // FIX: Use execution strategy for retry-on-failure
-            var strategy = _context.Database.CreateExecutionStrategy();
+            var strategy = _db.CreateExecutionStrategy();
 
             return await strategy.ExecuteAsync(async () =>
             {
-                await using var transaction = await _context.Database.BeginTransactionAsync();
+                await using var transaction = await _db.BeginTransactionAsync();
 
                 try
                 {

@@ -50,7 +50,7 @@ export const routes: Routes = [
     path: 'logs',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/logs/logs').then(m => m.Logs),
+      import('./features/logcomp/logcomp').then(m => m.LogComp),
   },
   {
     path: 'jobs',

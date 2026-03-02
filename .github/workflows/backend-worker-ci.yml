@@ -23,6 +23,9 @@ jobs:
       run: |
         docker build -t ghcr.io/icantype1912/worker:latest ./worker
         docker push ghcr.io/icantype1912/worker:latest
-
+    - name: Build frontend image
+      run: |
+        docker build -t ghcr.io/icantype1912/frontend:latest ./frontend
+        docker push ghcr.io/icantype1912/frontend:latest
 
   
