@@ -65,7 +65,7 @@ class CallbackService:
 
         try:
             # Increase timeout to 180 seconds (3 minutes)
-            async with httpx.AsyncClient(timeout=180.0) as client:
+            async with httpx.AsyncClient(timeout=180.0, verify = False) as client:
                 response = await client.post(url, headers=headers, content=body)
 
                 if response.status_code == 200:

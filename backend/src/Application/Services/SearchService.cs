@@ -71,6 +71,34 @@ namespace invoice_v1.src.Application.Services
             TABLE: invalid_invoices
               EXACT COLUMNS: "Id" uuid PK, "JobId" uuid, "FileId" varchar, "FileName" varchar,
               "VendorId" uuid FK->Users.Id, "Reason" jsonb, "CreatedAt" timestamptz
+
+            QUERY GUIDANCE — follow these rules for every query:
+
+            REVENUE / SALES TOTALS:
+              ALWAYS aggregate from invoice_lines using SUM(il."Amount").
+              NEVER use products."TotalRevenue", products."TotalQuantitySold",
+              or products."InvoiceCount" directly — these may be stale or double-counted.
+              Correct pattern for top products by revenue:
+                SELECT il."ProductName",
+                       SUM(il."Amount")    AS "TotalRevenue",
+                       SUM(il."Quantity")  AS "TotalQuantity",
+                       COUNT(DISTINCT il."InvoiceId") AS "InvoiceCount"
+                FROM invoice_lines il
+                JOIN invoices i ON il."InvoiceId" = i."Id"
+                GROUP BY il."ProductName"
+                ORDER BY "TotalRevenue" DESC
+                LIMIT 50
+
+            DATE FILTERING:
+              For revenue/invoice questions that mention a time period, ALWAYS filter on
+              i."InvoiceDate" (fall back to i."CreatedAt" if InvoiceDate is null):
+                WHERE COALESCE(i."InvoiceDate", i."CreatedAt") >= NOW() - INTERVAL '30 days'
+              Never filter on invoice_lines."CreatedAt" for business date questions.
+
+            PRODUCT LOOKUPS (non-revenue):
+              You MAY read products."ProductName", "Category", "PrimaryCategory",
+              "SecondaryCategory", "DefaultUnitRate", "LastSoldDate" directly.
+              Only avoid the aggregated numeric columns listed above.
             """;
 
         public SearchService(
@@ -413,9 +441,7 @@ namespace invoice_v1.src.Application.Services
                     SELECT DISTINCT p."ProductId", p."ProductName", p."Category",
                            p."PrimaryCategory", p."SecondaryCategory",
                            COALESCE(p."DefaultUnitRate", 0) AS "DefaultUnitRate",
-                           COALESCE(p."TotalQuantitySold", 0) AS "TotalQuantitySold",
-                           COALESCE(p."TotalRevenue", 0) AS "TotalRevenue",
-                           p."InvoiceCount", p."LastSoldDate"
+                           p."LastSoldDate"
                     FROM products p
                     JOIN invoice_lines il ON il."ProductGuid" = p."Id"
                     JOIN invoices i ON il."InvoiceId" = i."Id"
@@ -491,7 +517,6 @@ namespace invoice_v1.src.Application.Services
             foreach (var term in orderByClause.Split(','))
             {
                 var trimmed = term.Trim();
-                // Match: alias."ColumnName" or alias.ColumnName optionally followed by ASC/DESC NULLS LAST
                 var match = Regex.Match(trimmed, @"^(\w+)\.""?(\w+)""?", RegexOptions.IgnoreCase);
                 if (match.Success)
                 {

@@ -23,19 +23,14 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             if (!string.IsNullOrWhiteSpace(category))
-            {
                 query = query.Where(il => il.Category == category);
-            }
 
             var grouped = await query
                 .GroupBy(il => new { il.ProductId, il.ProductName, il.Category })
@@ -69,14 +64,11 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             var grouped = await query
                 .GroupBy(il => new { il.ProductId, il.ProductName, il.Category })
@@ -112,14 +104,11 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             var grouped = await query
                 .GroupBy(il => il.Category ?? "Uncategorized")
@@ -144,7 +133,8 @@ namespace invoice_v1.src.Infrastructure.Repositories
             }).ToList();
         }
 
-        public async Task<List<(DateTime InvoiceDate, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
+        // FIXED: Guid InvoiceId added to tuple — needed for Distinct().Count() in AggregateTimeSeries
+        public async Task<List<(DateTime InvoiceDate, Guid InvoiceId, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
             GetProductTimeSeriesDataAsync(
                 string productId,
                 DateTime startDate,
@@ -153,19 +143,17 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => il.ProductId == productId &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             return await query
-                .Select(il => new ValueTuple<DateTime, string, string, decimal, decimal>(
+                .Select(il => new ValueTuple<DateTime, Guid, string, string, decimal, decimal>(
                     il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt,
+                    il.InvoiceId,       // ← ADDED
                     il.ProductId,
                     il.ProductName,
                     il.Quantity,

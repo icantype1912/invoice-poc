@@ -76,11 +76,12 @@ namespace invoice_v1.src.Application.Services
             return AggregateTimeSeries(rawData, granularity);
         }
 
+        // FIXED: tuple now carries InvoiceId → Distinct().Count() gives real invoice count, not line-item count
         private List<ProductTimeSeriesDto> AggregateTimeSeries(
-            List<(DateTime InvoiceDate, string ProductId, string ProductName, decimal Quantity, decimal Amount)> rawData,
+            List<(DateTime InvoiceDate, Guid InvoiceId, string ProductId, string ProductName, decimal Quantity, decimal Amount)> rawData,
             TimeGranularity granularity)
         {
-            var grouped = rawData
+            return rawData
                 .GroupBy(d => new
                 {
                     Period = granularity switch
@@ -102,12 +103,10 @@ namespace invoice_v1.src.Application.Services
                     ProductName = g.Key.ProductName,
                     Quantity = g.Sum(x => x.Quantity),
                     Revenue = g.Sum(x => x.Amount),
-                    InvoiceCount = g.Count()
+                    InvoiceCount = g.Select(x => x.InvoiceId).Distinct().Count()  // ← FIXED: was g.Count()
                 })
                 .OrderBy(d => d.Period)
                 .ToList();
-
-            return grouped;
         }
     }
 }

@@ -1,0 +1,198 @@
+<div class="search-page">
+
+  <!-- ── Background grid ─────────────────────────────────────────────── -->
+  <div class="grid-overlay" aria-hidden="true"></div>
+  <div class="ambient-orb orb-1" aria-hidden="true"></div>
+  <div class="ambient-orb orb-2" aria-hidden="true"></div>
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <header class="search-header">
+    <div class="header-eyebrow">
+      <span class="pulse-dot"></span>
+      <span>Natural Language Query Engine</span>
+    </div>
+    <h1 class="search-title">
+      Ask your<br>
+      <span class="title-accent">data anything</span>
+    </h1>
+    <p class="search-subtitle">
+      Type a question in plain English — the engine translates it to SQL and returns live results.
+    </p>
+  </header>
+
+  <!-- ── Search bar ──────────────────────────────────────────────────── -->
+  <div class="search-bar-wrap">
+    <div class="search-bar" [class.bar-active]="query.length > 0" [class.bar-over-limit]="isOverLimit">
+
+      <span class="search-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+
+      <input
+        #queryInput
+        class="search-input"
+        type="text"
+        [(ngModel)]="query"
+        (keydown.enter)="search()"
+        placeholder="e.g. Show me all invoices from last 30 days…"
+        autocomplete="off"
+        spellcheck="false"
+        [attr.aria-invalid]="isOverLimit"
+        aria-label="Natural language search query"
+      />
+
+      <div class="bar-actions">
+        <span class="char-count" [class.count-warn]="query.length > 400" [class.count-over]="isOverLimit">
+          {{ query.length }}/{{ MAX_LENGTH }}
+        </span>
+
+        <button
+          *ngIf="query.length > 0 && !loading()"
+          class="btn-clear"
+          (click)="clearResult()"
+          aria-label="Clear search"
+          title="Clear"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        <button
+          class="btn-search"
+          (click)="search()"
+          [disabled]="loading() || !query.trim() || isOverLimit"
+          aria-label="Run search"
+        >
+          <span *ngIf="!loading()">Run</span>
+          <span *ngIf="loading()" class="btn-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <p *ngIf="isOverLimit" class="limit-warning" role="alert">
+      Query exceeds {{ MAX_LENGTH }}-character limit. Please shorten it.
+    </p>
+  </div>
+
+  <!-- ── Example queries ─────────────────────────────────────────────── -->
+  <div class="examples-section" *ngIf="!result() && !loading()">
+    <p class="examples-label">Try an example</p>
+    <div class="examples-grid">
+      <button
+        *ngFor="let ex of exampleQueries"
+        class="example-chip"
+        (click)="useExample(ex)"
+        [title]="ex"
+      >
+        <span class="chip-arrow" aria-hidden="true">↗</span>
+        {{ ex }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Loading skeleton ─────────────────────────────────────────────── -->
+  <div class="loading-state" *ngIf="loading()" aria-live="polite" aria-label="Searching…">
+    <div class="loading-label">
+      <span class="pulse-dot"></span>
+      Generating query &amp; fetching results…
+    </div>
+    <div class="skeleton-rows">
+      <div class="skeleton-row" *ngFor="let _ of [0,1,2,3,4]" [style.opacity]="1 - _ * 0.15"></div>
+    </div>
+  </div>
+
+  <!-- ── Error state ──────────────────────────────────────────────────── -->
+  <div class="error-banner" *ngIf="error() && !loading()" role="alert">
+    <span class="error-icon" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </span>
+    <span>{{ error() }}</span>
+
+    <!-- Show SQL toggle even on error if SQL was generated -->
+    <button
+      *ngIf="result()?.generatedSql"
+      class="btn-sql-toggle"
+      (click)="showSql.set(!showSql())"
+    >
+      {{ showSql() ? 'Hide SQL' : 'Show SQL' }}
+    </button>
+  </div>
+
+  <!-- ── Results ──────────────────────────────────────────────────────── -->
+  <div class="results-section" *ngIf="result() && !loading()">
+
+    <!-- Result meta bar -->
+    <div class="result-meta">
+      <div class="result-meta-left">
+        <span class="result-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+          {{ result()!.rowCount }} {{ result()!.rowCount === 1 ? 'row' : 'rows' }}
+        </span>
+        <span class="result-query-echo" [title]="result()!.naturalLanguageQuery">
+          "{{ result()!.naturalLanguageQuery }}"
+        </span>
+      </div>
+      <div class="result-meta-right">
+        <button
+          class="btn-sql-toggle"
+          (click)="showSql.set(!showSql())"
+          [attr.aria-expanded]="showSql()"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          {{ showSql() ? 'Hide SQL' : 'View SQL' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Generated SQL panel -->
+    <div class="sql-panel" *ngIf="showSql() && result()?.generatedSql">
+      <div class="sql-panel-header">
+        <span class="sql-label">Generated SQL</span>
+      </div>
+      <pre class="sql-code"><code>{{ result()!.generatedSql }}</code></pre>
+    </div>
+
+    <!-- Empty results -->
+    <div class="empty-results" *ngIf="result()!.rowCount === 0 && !error()">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+      <p>No results found for this query.</p>
+      <p class="empty-hint">Try rephrasing — e.g. "show my invoices" or "list products by revenue".</p>
+    </div>
+
+    <!-- Data table -->
+    <div class="table-wrap" *ngIf="result()!.rowCount > 0">
+      <table class="data-table" aria-label="Search results">
+        <thead>
+          <tr>
+            <th *ngFor="let col of columns" [title]="col">{{ col }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of result()!.rows; let i = index" [class.row-even]="i % 2 === 0">
+            <td *ngFor="let col of columns" [title]="formatCell(row[col])">
+              <span class="cell-content">{{ formatCell(row[col]) }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>

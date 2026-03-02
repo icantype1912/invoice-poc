@@ -1625,6 +1625,7 @@ namespace invoice_v1.src.Application.DTOs
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string WebViewLink { get; set; } = string.Empty;
+        public DateTime? ModifiedTime { get; set; }
     }
 }
 
@@ -3268,11 +3269,12 @@ namespace invoice_v1.src.Application.Services
             return AggregateTimeSeries(rawData, granularity);
         }
 
+        // FIXED: tuple now carries InvoiceId → Distinct().Count() gives real invoice count, not line-item count
         private List<ProductTimeSeriesDto> AggregateTimeSeries(
-            List<(DateTime InvoiceDate, string ProductId, string ProductName, decimal Quantity, decimal Amount)> rawData,
+            List<(DateTime InvoiceDate, Guid InvoiceId, string ProductId, string ProductName, decimal Quantity, decimal Amount)> rawData,
             TimeGranularity granularity)
         {
-            var grouped = rawData
+            return rawData
                 .GroupBy(d => new
                 {
                     Period = granularity switch
@@ -3294,16 +3296,13 @@ namespace invoice_v1.src.Application.Services
                     ProductName = g.Key.ProductName,
                     Quantity = g.Sum(x => x.Quantity),
                     Revenue = g.Sum(x => x.Amount),
-                    InvoiceCount = g.Count()
+                    InvoiceCount = g.Select(x => x.InvoiceId).Distinct().Count()  // ← FIXED: was g.Count()
                 })
                 .OrderBy(d => d.Period)
                 .ToList();
-
-            return grouped;
         }
     }
 }
-
 
 
 ============================================================
@@ -3343,8 +3342,13 @@ namespace invoice_v1.src.Application.Services
 
         public async Task SignupAsync(SignupRequest request)
         {
-            if (await _userRepository.EmailExistsAsync(request.Email))
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+            if (existingUser != null)
             {
+                if (existingUser.IsSoftDeleted)
+                {
+                    throw new InvalidOperationException("Prohibited to register contact admin");
+                }
                 throw new InvalidOperationException("Email is already registered");
             }
 
@@ -4514,38 +4518,26 @@ namespace invoice_v1.src.Application.Services
             var job = await _jobQueueRepository.GetByIdAsync(jobId);
             if (job == null) throw new InvalidOperationException($"Job {jobId} not found");
 
-            // LOGIC: Exponential Backoff Strategy
-            if (job.RetryCount < MaxRetries)
-            {
-                job.RetryCount++;
+            // Final State: INVALID (was FAILED)
+            // The worker handles retry scheduling internally (Status=PENDING).
+            // If the worker sends a FAILED callback, it means it's a permanent failure 
+            // or max retries were reached.
+            // We transition this to INVALID so it appears in the Invalid Invoices view.
+            job.Status = nameof(JobStatus.INVALID);
+            job.ErrorMessage = errorDetails;
+            job.NextRetryAt = null;
+            job.LockedBy = null;
+            job.LockedAt = null;
+            job.UpdatedAt = DateTime.UtcNow;
 
-                // Exponential Backoff: 2^(n-1) minutes -> 1, 2, 4 minutes
-                var delayMinutes = Math.Pow(2, job.RetryCount - 1);
+            await _jobQueueRepository.UpdateAsync(job);
+            await _jobQueueRepository.SaveChangesAsync();
 
-                job.Status = nameof(JobStatus.PENDING); // Set back to PENDING for retry service
-                job.NextRetryAt = DateTime.UtcNow.AddMinutes(delayMinutes);
-                job.ErrorMessage = errorDetails;
+            // Create entry in invalid_invoice for user visibility
+            await CreateInvalidInvoiceFromJobAsync(jobId, errorDetails);
 
-                // Unlock the job so it can be picked up
-                job.LockedBy = null;
-                job.LockedAt = null;
-                job.UpdatedAt = DateTime.UtcNow;
-
-                await _jobQueueRepository.UpdateAsync(job);
-                await _jobQueueRepository.SaveChangesAsync();
-
-                _logger.LogWarning(
-                    "Job {JobId} failed. Scheduled retry {RetryCount}/{MaxRetries} in {Delay} minutes. Error: {Error}",
-                    jobId, job.RetryCount, MaxRetries, delayMinutes, errorDetails.RootElement.ToString());
-            }
-            else
-            {
-                // Max retries hit -> Mark as INVALID (Final State)
-                _logger.LogError("Job {JobId} hit max retries ({Max}). Marking as INVALID.", jobId, MaxRetries);
-
-                await MarkInvalidAsync(jobId, errorDetails);
-                await CreateInvalidInvoiceFromJobAsync(jobId, errorDetails);
-            }
+            _logger.LogError("Job {JobId} reached permanent failure and was marked as INVALID. Reason: {Error}", 
+                jobId, errorDetails.RootElement.ToString());
         }
 
         public async Task MarkInvalidAsync(Guid jobId, JsonDocument reasonDetails)
@@ -5000,26 +4992,27 @@ namespace invoice_v1.src.Application.Services
         };
 
         // ── Tables vendors cannot query at all ────────────────────────────────
-        // Admins CAN query Users but still cannot see password columns
         private static readonly string[] VendorBlockedTables =
         {
             "Users"
         };
 
-        // ── SQL keywords that are dangerous even inside a SELECT ──────────────
+        // ── SQL keywords/patterns that are dangerous ──────────────────────────
         private static readonly string[] BlockedSqlPatterns =
         {
             @"\bINSERT\b", @"\bUPDATE\b", @"\bDELETE\b", @"\bDROP\b",
             @"\bTRUNCATE\b", @"\bALTER\b", @"\bCREATE\b", @"\bGRANT\b",
             @"\bREVOKE\b", @"\bEXEC\b", @"\bEXECUTE\b", @"\bCOPY\b",
             @"\bPG_SLEEP\b", @"\bPG_READ_FILE\b", @"\bPG_WRITE_FILE\b",
-            @"\bUNION\b",          // prevents SELECT-based exfiltration
-            @"--",                 // SQL comment injection
-            @"/\*",                // block comment injection
-            @"\bINFORMATION_SCHEMA\b",  // schema enumeration
-            @"\bPG_CATALOG\b",     // Postgres system catalog
-            @"\bCURRENT_USER\b",   // privilege escalation recon
-            @"\bSESSION_USER\b"
+            @"\bUNION\b",
+            @"--",
+            @"/\*",
+            @"\bINFORMATION_SCHEMA\b",
+            @"\bPG_CATALOG\b",
+            @"\bCURRENT_USER\b",
+            @"\bSESSION_USER\b",
+            @"\bSELECT\s+INTO\b",   // prevents data exfiltration via SELECT INTO
+            @"\bINTO\s+OUTFILE\b"
         };
 
         // ── Input-level checks (before LLM call) ─────────────────────────────
@@ -5037,7 +5030,6 @@ namespace invoice_v1.src.Application.Services
                 throw new InvalidOperationException(
                     "Query must be 500 characters or fewer.");
 
-            // Look for prompt injection attempts in the raw input
             var suspiciousInputPatterns = new[]
             {
                 @"ignore\s+(previous|above|all)\s+instructions",
@@ -5047,7 +5039,6 @@ namespace invoice_v1.src.Application.Services
                 @"new\s+instructions",
                 @"system\s*:",
                 @"<\s*system\s*>",
-                // Raw SQL in the query itself
                 @"\bDROP\s+TABLE\b",
                 @"\bDELETE\s+FROM\b",
                 @"\bINSERT\s+INTO\b",
@@ -5085,26 +5076,32 @@ namespace invoice_v1.src.Application.Services
             if (!normalised.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
                 return (false, "Only SELECT queries are permitted.");
 
-            // 2. Dangerous keyword blocklist
+            // 2. Must not contain multiple statements
+            // Strip string literals first to avoid false positives on semicolons in strings
+            var stripped = Regex.Replace(normalised, @"'[^']*'", "''");
+            var statementCount = stripped.Count(c => c == ';');
+            if (statementCount > 1)
+                return (false, "Only a single SQL statement is permitted.");
+
+            // 3. Dangerous keyword blocklist
             foreach (var pattern in BlockedSqlPatterns)
             {
                 if (Regex.IsMatch(normalised, pattern, RegexOptions.IgnoreCase))
-                    return (false, $"Query contains disallowed SQL construct.");
+                    return (false, "Query contains disallowed SQL construct.");
             }
 
-            // 3. Sensitive columns must never appear
+            // 4. Sensitive columns must never appear
             foreach (var col in BlockedColumns)
             {
                 if (normalised.Contains(col, StringComparison.OrdinalIgnoreCase))
-                    return (false, $"Query references a restricted column.");
+                    return (false, "Query references a restricted column.");
             }
 
-            // 4. Vendors cannot query the Users table at all
+            // 5. Vendors cannot query the Users table at all
             if (isVendor)
             {
                 foreach (var table in VendorBlockedTables)
                 {
-                    // Match as a word boundary to avoid false positives
                     if (Regex.IsMatch(normalised,
                         $@"\b{Regex.Escape(table)}\b",
                         RegexOptions.IgnoreCase))
@@ -5114,21 +5111,34 @@ namespace invoice_v1.src.Application.Services
                 }
             }
 
-            // 5. Vendor scope check — vendorId must appear literally in the SQL
-            //    Prevents the LLM from "forgetting" the WHERE clause
+            // 6. Vendor scope check — vendorId must appear literally in the SQL
             if (isVendor && vendorId.HasValue)
             {
                 var vendorIdStr = vendorId.Value.ToString();
                 if (!normalised.Contains(vendorIdStr, StringComparison.OrdinalIgnoreCase))
                 {
                     return (false,
-                        "Could not safely scope query to your account. Please rephrase.");
+                        "Search could not be completed. Try rephrasing — for example: 'show my invoices' or 'show my products'.");
+                }
+
+                // Products table has no vendor column — must join through invoices
+                bool queriesProducts = Regex.IsMatch(normalised, @"\bproducts\b", RegexOptions.IgnoreCase);
+                bool joinsInvoices = Regex.IsMatch(normalised, @"\binvoices\b", RegexOptions.IgnoreCase);
+                if (queriesProducts && !joinsInvoices)
+                {
+                    return (false,
+                        "Search could not be completed. Try rephrasing — for example: 'show my products' or 'what products have I sold'.");
                 }
             }
 
-            // 6. Reasonable result cap — must contain LIMIT
-            if (!Regex.IsMatch(normalised, @"\bLIMIT\b", RegexOptions.IgnoreCase))
+            // 7. Must contain LIMIT with a sane value (1–200)
+            var limitMatch = Regex.Match(normalised, @"\bLIMIT\s+(\d+)\b", RegexOptions.IgnoreCase);
+            if (!limitMatch.Success)
                 return (false, "Generated query is missing a LIMIT clause.");
+
+            var limitVal = int.Parse(limitMatch.Groups[1].Value);
+            if (limitVal <= 0 || limitVal > 200)
+                return (false, "Generated query has an invalid LIMIT value.");
 
             return (true, null);
         }
@@ -5159,55 +5169,59 @@ namespace invoice_v1.src.Application.Services
 
         private const string SchemaContext = """
             PostgreSQL database schema (READ-ONLY access):
+            IMPORTANT: Only use the EXACT column names listed. Never invent or guess column names.
 
             TABLE: "Users"  [ADMIN ONLY]
-              Id uuid PK, Email varchar, Username text, CompanyName text,
-              Role int (0=Admin,1=Vendor), Status int (0=Pending,1=Approved,2=Rejected,3=Locked),
-              IsSoftDeleted bool, CreatedAt timestamptz, UpdatedAt timestamptz
-              FORBIDDEN COLUMNS (never select): PasswordHash, PasswordSalt
+              EXACT COLUMNS: "Id" uuid PK, "Email" varchar, "Username" text, "CompanyName" text,
+              "Role" int (0=Admin,1=Vendor), "Status" int (0=Pending,1=Approved,2=Rejected,3=Locked),
+              "IsSoftDeleted" bool, "CreatedAt" timestamptz, "UpdatedAt" timestamptz
+              FORBIDDEN COLUMNS (never select): "PasswordHash", "PasswordSalt"
 
             TABLE: file_change_logs
-              Id serial PK, FileName varchar, FileId varchar,
-              ChangeType varchar (Upload/Modified/Deleted),
-              DetectedAt timestamptz, MimeType varchar, FileSize bigint,
-              ModifiedBy varchar, Processed bool, ProcessedAt timestamptz,
-              UploadedByVendorId uuid FK->Users.Id
+              EXACT COLUMNS: "Id" serial PK, "FileName" varchar, "FileId" varchar,
+              "ChangeType" varchar (Upload/Modified/Deleted),
+              "DetectedAt" timestamptz, "MimeType" varchar, "FileSize" bigint,
+              "ModifiedBy" varchar, "Processed" bool, "ProcessedAt" timestamptz,
+              "UploadedByVendorId" uuid FK->Users.Id
 
             TABLE: job_queues
-              Id uuid PK, JobType varchar, PayloadJson jsonb,
-              Status varchar (PENDING/PROCESSING/COMPLETED/FAILED/INVALID),
-              RetryCount int, LockedBy varchar, LockedAt timestamptz,
-              NextRetryAt timestamptz, ErrorMessage jsonb,
-              CreatedAt timestamptz, UpdatedAt timestamptz
+              EXACT COLUMNS: "Id" uuid PK, "JobType" varchar, "PayloadJson" jsonb,
+              "Status" varchar (PENDING/PROCESSING/COMPLETED/FAILED/INVALID),
+              "RetryCount" int, "LockedBy" varchar, "LockedAt" timestamptz,
+              "NextRetryAt" timestamptz, "ErrorMessage" jsonb,
+              "CreatedAt" timestamptz, "UpdatedAt" timestamptz
+              JSONB QUERYING: Use PayloadJson->>'fieldName' for text values, e.g.
+              WHERE jq."PayloadJson"->>'uploader' = 'some-vendor-id'
 
             TABLE: invoices
-              Id uuid PK, InvoiceNumber varchar, InvoiceDate timestamptz,
-              OrderId varchar, VendorName varchar, BillToName varchar,
-              ShipToCity varchar, ShipToState varchar, ShipToCountry varchar,
-              ShipMode varchar, Subtotal numeric, DiscountPercentage numeric,
-              DiscountAmount numeric, ShippingCost numeric, TotalAmount numeric,
-              BalanceDue numeric, Currency varchar, Notes text, Terms text,
-              DriveFileId varchar, OriginalFileName varchar,
-              UploadedByVendorId uuid FK->Users.Id,
-              CreatedAt timestamptz, UpdatedAt timestamptz
+              EXACT COLUMNS: "Id" uuid PK, "InvoiceNumber" varchar, "InvoiceDate" timestamptz,
+              "OrderId" varchar, "VendorName" varchar, "BillToName" varchar,
+              "ShipToCity" varchar, "ShipToState" varchar, "ShipToCountry" varchar,
+              "ShipMode" varchar, "Subtotal" numeric, "DiscountPercentage" numeric,
+              "DiscountAmount" numeric, "ShippingCost" numeric, "TotalAmount" numeric,
+              "BalanceDue" numeric, "Currency" varchar, "Notes" text, "Terms" text,
+              "DriveFileId" varchar, "OriginalFileName" varchar,
+              "UploadedByVendorId" uuid FK->Users.Id,
+              "CreatedAt" timestamptz, "UpdatedAt" timestamptz
 
             TABLE: invoice_lines
-              Id uuid PK, InvoiceId uuid FK->invoices.Id,
-              ProductGuid uuid FK->products.Id,
-              ProductId varchar, ProductName varchar, Category varchar,
-              Quantity numeric, UnitRate numeric, Amount numeric,
-              CreatedAt timestamptz
+              EXACT COLUMNS: "Id" uuid PK, "InvoiceId" uuid FK->invoices.Id,
+              "ProductGuid" uuid FK->products.Id,
+              "ProductId" varchar, "ProductName" varchar, "Category" varchar,
+              "Quantity" numeric, "UnitRate" numeric, "Amount" numeric,
+              "CreatedAt" timestamptz
 
             TABLE: products
-              Id uuid PK, ProductId varchar UNIQUE, ProductName varchar,
-              Category varchar, PrimaryCategory varchar, SecondaryCategory varchar,
-              DefaultUnitRate numeric, TotalQuantitySold numeric,
-              TotalRevenue numeric, InvoiceCount int, LastSoldDate timestamptz,
-              CreatedAt timestamptz, UpdatedAt timestamptz
+              EXACT COLUMNS: "Id" uuid PK, "ProductId" varchar UNIQUE, "ProductName" varchar,
+              "Category" varchar, "PrimaryCategory" varchar, "SecondaryCategory" varchar,
+              "DefaultUnitRate" numeric, "TotalQuantitySold" numeric,
+              "TotalRevenue" numeric, "InvoiceCount" int, "LastSoldDate" timestamptz,
+              "CreatedAt" timestamptz, "UpdatedAt" timestamptz
+              FORBIDDEN: "CategoryId", "VendorId", "Price", "SKU", "Stock" — these DO NOT EXIST
 
             TABLE: invalid_invoices
-              Id uuid PK, JobId uuid, FileId varchar, FileName varchar,
-              VendorId uuid FK->Users.Id, Reason jsonb, CreatedAt timestamptz
+              EXACT COLUMNS: "Id" uuid PK, "JobId" uuid, "FileId" varchar, "FileName" varchar,
+              "VendorId" uuid FK->Users.Id, "Reason" jsonb, "CreatedAt" timestamptz
             """;
 
         public SearchService(
@@ -5236,9 +5250,7 @@ namespace invoice_v1.src.Application.Services
                     maxAttempts: 20,
                     window: TimeSpan.FromMinutes(1)))
             {
-                _logger.LogWarning(
-                    "Search rate limit hit for user {UserId}", userId);
-
+                _logger.LogWarning("Search rate limit hit for user {UserId}", userId);
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -5246,8 +5258,7 @@ namespace invoice_v1.src.Application.Services
                 };
             }
 
-            await _rateLimitService.IncrementAsync(
-                rateLimitKey, TimeSpan.FromMinutes(1));
+            await _rateLimitService.IncrementAsync(rateLimitKey, TimeSpan.FromMinutes(1));
 
             // ── Layer 2: Input sanitisation ───────────────────────────────────
             string sanitisedQuery;
@@ -5258,9 +5269,7 @@ namespace invoice_v1.src.Application.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(
-                    "Search input rejected for user {UserId}: {Reason}",
-                    userId, ex.Message);
-
+                    "Search input rejected for user {UserId}: {Reason}", userId, ex.Message);
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -5268,44 +5277,60 @@ namespace invoice_v1.src.Application.Services
                 };
             }
 
-            // ── Layer 3: LLM generates SQL ────────────────────────────────────
-            string sql;
-            try
-            {
-                sql = await GenerateSqlAsync(sanitisedQuery, vendorId, isVendor: vendorId.HasValue);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "LLM SQL generation failed for user {UserId}, query: {Query}",
-                    userId, sanitisedQuery);
+            // ── Layer 3: LLM generates SQL (with one retry on validation failure) ──
+            string sql = string.Empty;
+            string? firstRejectionReason = null;
 
-                return new SearchResultDto
+            for (int attempt = 1; attempt <= 2; attempt++)
+            {
+                try
                 {
-                    NaturalLanguageQuery = query,
-                    Error = "Could not generate a query from your input. Please try rephrasing."
-                };
-            }
-
-            // ── Layer 4: SQL security validation ─────────────────────────────
-            var (isValid, rejectionReason) = SearchSecurityValidator.ValidateSql(
-                sql,
-                isVendor: vendorId.HasValue,
-                vendorId: vendorId);
-
-            if (!isValid)
-            {
-                _logger.LogWarning(
-                    "Generated SQL rejected for user {UserId}. Reason: {Reason}. SQL: {Sql}",
-                    userId, rejectionReason, sql);
-
-                return new SearchResultDto
+                    sql = await GenerateSqlAsync(
+                        sanitisedQuery,
+                        vendorId,
+                        isVendor: vendorId.HasValue,
+                        priorRejectionReason: attempt == 2 ? firstRejectionReason : null);
+                }
+                catch (Exception ex)
                 {
-                    NaturalLanguageQuery = query,
-                    GeneratedSql = sql,
-                    SecurityRejectionReason = rejectionReason,
-                    Error = rejectionReason
-                };
+                    _logger.LogError(ex,
+                        "LLM SQL generation failed (attempt {Attempt}) for user {UserId}",
+                        attempt, userId);
+                    return new SearchResultDto
+                    {
+                        NaturalLanguageQuery = query,
+                        Error = "Could not generate a query from your input. Please try rephrasing."
+                    };
+                }
+
+                // ── Layer 4: SQL security validation ──────────────────────────
+                var (isValid, rejectionReason) = SearchSecurityValidator.ValidateSql(
+                    sql,
+                    isVendor: vendorId.HasValue,
+                    vendorId: vendorId);
+
+                if (!isValid)
+                {
+                    _logger.LogWarning(
+                        "Generated SQL rejected (attempt {Attempt}) for user {UserId}. Reason: {Reason}. SQL: {Sql}",
+                        attempt, userId, rejectionReason, sql);
+
+                    if (attempt == 1)
+                    {
+                        firstRejectionReason = rejectionReason;
+                        continue; // retry with rejection reason fed back to LLM
+                    }
+
+                    return new SearchResultDto
+                    {
+                        NaturalLanguageQuery = query,
+                        GeneratedSql = sql,
+                        SecurityRejectionReason = rejectionReason,
+                        Error = rejectionReason
+                    };
+                }
+
+                break; // validation passed
             }
 
             // ── Layer 5: Execute via read-only repository ─────────────────────
@@ -5328,9 +5353,7 @@ namespace invoice_v1.src.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Search SQL execution failed for user {UserId}. SQL: {Sql}",
-                    userId, sql);
-
+                    "Search SQL execution failed for user {UserId}. SQL: {Sql}", userId, sql);
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -5345,7 +5368,8 @@ namespace invoice_v1.src.Application.Services
         private async Task<string> GenerateSqlAsync(
             string query,
             Guid? vendorId,
-            bool isVendor)
+            bool isVendor,
+            string? priorRejectionReason = null)
         {
             var groqApiKey = _configuration["Groq:ApiKey"]
                 ?? throw new InvalidOperationException("Groq:ApiKey not configured.");
@@ -5353,7 +5377,6 @@ namespace invoice_v1.src.Application.Services
             var groqModel = _configuration["Groq:Model"]
                 ?? "llama-3.3-70b-versatile";
 
-            // Inject vendor scope as a hard constraint in the prompt
             var vendorConstraint = isVendor && vendorId.HasValue
                 ? $"""
 
@@ -5363,7 +5386,16 @@ namespace invoice_v1.src.Application.Services
                   - For invoices: WHERE i."UploadedByVendorId" = '{vendorId}'
                   - For file_change_logs: WHERE fcl."UploadedByVendorId" = '{vendorId}'
                   - For invalid_invoices: WHERE ii."VendorId" = '{vendorId}'
-                  - For job_queues: filter via PayloadJson->>'driveVendorId' = '{vendorId}'
+                  - For job_queues: WHERE jq."PayloadJson"->>'uploader' = '{vendorId}'
+                  - For products: The products table has NO vendor column. You MUST join through
+                    invoice_lines and invoices to scope by vendor. ALWAYS use this exact pattern:
+                      FROM products p
+                      JOIN invoice_lines il ON il."ProductGuid" = p."Id"
+                      JOIN invoices i ON il."InvoiceId" = i."Id"
+                      WHERE i."UploadedByVendorId" = '{vendorId}'
+                    Use SELECT DISTINCT to avoid duplicate rows.
+                    When using SELECT DISTINCT, ORDER BY columns MUST appear in the SELECT list.
+                    A bare SELECT FROM products WITHOUT this join is FORBIDDEN.
                   You MUST NOT query the "Users" table at all.
                   The vendor id '{vendorId}' MUST appear literally in the WHERE clause.
                   """
@@ -5373,40 +5405,75 @@ namespace invoice_v1.src.Application.Services
                   NEVER select PasswordHash or PasswordSalt columns under any circumstances.
                   """;
 
+            var retryContext = priorRejectionReason != null
+                ? $"""
+
+                  IMPORTANT: Your previous SQL was rejected for this reason: "{priorRejectionReason}"
+                  You MUST fix this issue in your new query.
+                  """
+                : string.Empty;
+
             var systemPrompt = $"""
                 You are a PostgreSQL query generator for an invoice processing application.
                 Given a natural language question, produce ONE valid read-only PostgreSQL SELECT query.
 
                 {SchemaContext}
                 {vendorConstraint}
+                {retryContext}
 
                 STRICT RULES:
-                1. Return ONLY the raw SQL — no markdown fences, no explanation, nothing else.
+                1. Return ONLY the raw SQL — no markdown fences, no explanation, no preamble,
+                   nothing before or after the SQL statement.
                 2. Only SELECT statements are allowed. Never use INSERT, UPDATE, DELETE,
                    DROP, TRUNCATE, ALTER, CREATE, GRANT, UNION, EXEC, COPY.
-                3. Always include LIMIT (default 50, max 200).
+                3. Always include LIMIT (default 50, max 200). Never use LIMIT 0.
                 4. Never select PasswordHash or PasswordSalt.
-                5. Use table aliases. Quote PascalCase identifiers (e.g. "UploadedByVendorId").
-                6. For date ranges use NOW() - INTERVAL '...' syntax.
-                7. If the question cannot be answered with the schema, return exactly:
-                   SELECT 'No matching data for this query' AS message;
+                5. Use table aliases. ALWAYS wrap ALL column names in double-quotes — e.g.
+                   "Id", "ProductName", "UploadedByVendorId", "InvoiceId", "ProductGuid",
+                   "Category", "TotalRevenue", "LastSoldDate", "UpdatedAt", "CreatedAt".
+                   Never use unquoted column names.
+                6. For date ranges use NOW() - INTERVAL '...' syntax. Examples:
+                   - This month:  WHERE i."InvoiceDate" >= DATE_TRUNC('month', NOW())
+                   - Last 30 days: WHERE i."InvoiceDate" >= NOW() - INTERVAL '30 days'
+                   - This year:   WHERE i."InvoiceDate" >= DATE_TRUNC('year', NOW())
+                7. For ALL text searches, ALWAYS use ILIKE with wildcards, never =. Examples:
+                   - Product name:    WHERE p."ProductName" ILIKE '%Bookrack%'
+                   - Vendor name:     WHERE i."VendorName" ILIKE '%Acme%'
+                   - Category:        WHERE p."Category" ILIKE '%furniture%'
+                   - Invoice number:  WHERE i."InvoiceNumber" ILIKE '%INV-001%'
+                   - File name:       WHERE fcl."FileName" ILIKE '%receipt%'
+                   - Ship city:       WHERE i."ShipToCity" ILIKE '%New York%'
+                8. For aggregation queries (totals, counts, averages), always include GROUP BY
+                   for all non-aggregated columns in the SELECT list.
+                9. Use COALESCE for nullable numeric columns to avoid NULL in results, e.g.
+                   COALESCE(p."TotalRevenue", 0).
+                10. When using SELECT DISTINCT, every column in ORDER BY MUST also appear
+                    in the SELECT list. If ordering by a column not in SELECT, either add it
+                    to SELECT or remove the ORDER BY.
+                11. For vendor product queries, ALWAYS join through invoice_lines and invoices.
+                    Never query products without WHERE i."UploadedByVendorId" = '<vendorId>'.
+                12. Never produce multiple SQL statements separated by semicolons.
+                    Only one SELECT per response.
+                13. If the question cannot be answered with the schema, return exactly:
+                    SELECT 'No matching data for this query' AS message;
                 """;
+
+            var messages = new List<object>
+            {
+                new { role = "system", content = systemPrompt },
+                new { role = "user",   content = query }
+            };
 
             var requestBody = new
             {
                 model = groqModel,
-                messages = new[]
-                {
-                    new { role = "system", content = systemPrompt },
-                    new { role = "user",   content = query }
-                },
+                messages,
                 temperature = 0.1,
                 max_tokens = 1024
             };
 
             var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Add(
-                "Authorization", $"Bearer {groqApiKey}");
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {groqApiKey}");
 
             var response = await client.PostAsync(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -5426,14 +5493,193 @@ namespace invoice_v1.src.Application.Services
                 .GetProperty("content")
                 .GetString() ?? string.Empty;
 
-            // Strip any accidental markdown fences
-            rawSql = Regex.Replace(
-                rawSql, @"```(?:sql)?", "", RegexOptions.IgnoreCase).Trim();
+            // ── Post-processing pipeline ──────────────────────────────────────
 
-            _logger.LogInformation(
-                "Generated SQL: {Sql}", rawSql);
+            // 1. Strip markdown fences
+            rawSql = Regex.Replace(rawSql, @"```(?:sql)?", "", RegexOptions.IgnoreCase).Trim();
+
+            // 2. Strip any leading prose before the SELECT keyword
+            var selectIndex = rawSql.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
+            if (selectIndex > 0)
+                rawSql = rawSql[selectIndex..];
+
+            // 3. Strip any trailing prose — keep only up to the last semicolon
+            var semiIndex = rawSql.LastIndexOf(';');
+            if (semiIndex >= 0)
+                rawSql = rawSql[..(semiIndex + 1)];
+
+            // 4. Ensure single statement — strip anything after the first semicolon
+            var firstSemi = rawSql.IndexOf(';');
+            if (firstSemi >= 0 && firstSemi < rawSql.Length - 1)
+            {
+                var afterSemi = rawSql[(firstSemi + 1)..].Trim();
+                if (afterSemi.Length > 0 && !afterSemi.StartsWith("--"))
+                    rawSql = rawSql[..(firstSemi + 1)];
+            }
+
+            // 5. Remove trailing semicolon
+            rawSql = rawSql.TrimEnd(';', ' ', '\n', '\r').Trim();
+
+            // 6. Auto-fix unquoted PascalCase identifiers (e.g. i.Id -> i."Id")
+            rawSql = Regex.Replace(
+                rawSql,
+                @"\b([a-z]{1,5})\.([A-Z][a-zA-Z]+)\b",
+                m => $"{m.Groups[1].Value}.\"{m.Groups[2].Value}\"");
+
+            // 7. Safety net: inject vendor scope if LLM forgot it
+            if (isVendor && vendorId.HasValue)
+                rawSql = InjectVendorScopeIfMissing(rawSql, vendorId.Value);
+
+            // 8. Fix SELECT DISTINCT + ORDER BY column mismatch
+            rawSql = FixDistinctOrderBy(rawSql);
+
+            // 9. Clamp LIMIT to safe range (1–200)
+            rawSql = ClampLimit(rawSql);
+
+            _logger.LogInformation("Generated SQL: {Sql}", rawSql);
 
             return rawSql;
+        }
+
+        // ── Safety net: inject vendor scope if LLM omitted it ─────────────────
+
+        private static string InjectVendorScopeIfMissing(string sql, Guid vendorId)
+        {
+            var vendorIdStr = vendorId.ToString();
+
+            if (sql.Contains(vendorIdStr, StringComparison.OrdinalIgnoreCase))
+                return sql;
+
+            bool hasProducts = Regex.IsMatch(sql, @"\bproducts\b", RegexOptions.IgnoreCase);
+            bool hasInvoices = Regex.IsMatch(sql, @"\binvoices\b", RegexOptions.IgnoreCase);
+            bool hasInvoiceLines = Regex.IsMatch(sql, @"\binvoice_lines\b", RegexOptions.IgnoreCase);
+
+            // Case 1: bare products query — rewrite entirely with safe join pattern
+            if (hasProducts && !hasInvoices && !hasInvoiceLines)
+            {
+                var limitMatch = Regex.Match(sql, @"\bLIMIT\s+(\d+)", RegexOptions.IgnoreCase);
+                var limit = limitMatch.Success ? limitMatch.Groups[1].Value : "50";
+
+                return $"""
+                    SELECT DISTINCT p."ProductId", p."ProductName", p."Category",
+                           p."PrimaryCategory", p."SecondaryCategory",
+                           COALESCE(p."DefaultUnitRate", 0) AS "DefaultUnitRate",
+                           COALESCE(p."TotalQuantitySold", 0) AS "TotalQuantitySold",
+                           COALESCE(p."TotalRevenue", 0) AS "TotalRevenue",
+                           p."InvoiceCount", p."LastSoldDate"
+                    FROM products p
+                    JOIN invoice_lines il ON il."ProductGuid" = p."Id"
+                    JOIN invoices i ON il."InvoiceId" = i."Id"
+                    WHERE i."UploadedByVendorId" = '{vendorIdStr}'
+                    ORDER BY p."LastSoldDate" DESC NULLS LAST
+                    LIMIT {limit}
+                    """;
+            }
+
+            // Case 2: invoice_lines without invoices join
+            if (hasInvoiceLines && !hasInvoices)
+            {
+                sql = Regex.Replace(
+                    sql,
+                    @"\bWHERE\b",
+                    $"JOIN invoices i ON il.\"InvoiceId\" = i.\"Id\" WHERE i.\"UploadedByVendorId\" = '{vendorIdStr}' AND ",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                return sql;
+            }
+
+            // Case 3: invoices query missing vendor filter
+            if (hasInvoices && !hasProducts)
+            {
+                if (Regex.IsMatch(sql, @"\bWHERE\b", RegexOptions.IgnoreCase))
+                {
+                    sql = Regex.Replace(
+                        sql,
+                        @"\bWHERE\b",
+                        $"WHERE i.\"UploadedByVendorId\" = '{vendorIdStr}' AND ",
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                }
+                else
+                {
+                    sql = Regex.Replace(
+                        sql,
+                        @"\b(ORDER\s+BY|LIMIT)\b",
+                        $"WHERE i.\"UploadedByVendorId\" = '{vendorIdStr}' $1",
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                }
+                return sql;
+            }
+
+            return sql;
+        }
+
+        // ── Fix SELECT DISTINCT + ORDER BY column mismatch ────────────────────
+
+        private static string FixDistinctOrderBy(string sql)
+        {
+            if (!Regex.IsMatch(sql, @"\bSELECT\s+DISTINCT\b", RegexOptions.IgnoreCase))
+                return sql;
+
+            if (!Regex.IsMatch(sql, @"\bORDER\s+BY\b", RegexOptions.IgnoreCase))
+                return sql;
+
+            var selectMatch = Regex.Match(sql,
+                @"SELECT\s+DISTINCT\s+(.*?)\s+FROM\b",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (!selectMatch.Success) return sql;
+
+            var selectList = selectMatch.Groups[1].Value;
+
+            var orderByMatch = Regex.Match(sql,
+                @"\bORDER\s+BY\s+(.*?)(?:\s+LIMIT|\s*$)",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (!orderByMatch.Success) return sql;
+
+            var orderByClause = orderByMatch.Groups[1].Value.Trim();
+            bool needsFix = false;
+
+            foreach (var term in orderByClause.Split(','))
+            {
+                var trimmed = term.Trim();
+                // Match: alias."ColumnName" or alias.ColumnName optionally followed by ASC/DESC NULLS LAST
+                var match = Regex.Match(trimmed, @"^(\w+)\.""?(\w+)""?", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var colName = match.Groups[2].Value;
+                    if (!selectList.Contains(colName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        needsFix = true;
+                        break;
+                    }
+                }
+            }
+
+            if (needsFix)
+            {
+                sql = Regex.Replace(sql,
+                    @"\s+ORDER\s+BY\s+.*?(?=\s+LIMIT|\s*$)",
+                    "",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline).Trim();
+            }
+
+            return sql;
+        }
+
+        // ── Clamp LIMIT to safe range (1–200) ────────────────────────────────
+
+        private static string ClampLimit(string sql)
+        {
+            return Regex.Replace(sql,
+                @"\bLIMIT\s+(\d+)\b",
+                m =>
+                {
+                    var val = int.Parse(m.Groups[1].Value);
+                    if (val <= 0) val = 50;
+                    if (val > 200) val = 200;
+                    return $"LIMIT {val}";
+                },
+                RegexOptions.IgnoreCase);
         }
     }
 }
@@ -5519,28 +5765,41 @@ namespace invoice_v1.src.Application.Services
             // 5. IF UNHEALTHY — no Drive upload, log and reject
             if (!pipelineResult.IsHealthy)
             {
-                var unhealthyLog = new FileChangeLog
+                // DE-DUPLICATION: Check if we already logged this rejection recently (last 30 seconds)
+                var recentLog = await _fileChangeLogRepository.GetRecentUnhealthyLogAsync(
+                    vendorId, originalFileName, file.Length, TimeSpan.FromSeconds(30));
+
+                if (recentLog == null)
                 {
-                    FileId = $"rejected_{Guid.NewGuid()}",
-                    FileName = originalFileName,
-                    ChangeType = "Upload",
-                    MimeType = file.ContentType,
-                    FileSize = file.Length,
-                    UploadedByVendorId = vendorId,
-                    DetectedAt = DateTime.UtcNow,
-                    Processed = true,
-                    ProcessedAt = DateTime.UtcNow,
-                    SecurityStatus = nameof(FileSecurityStatus.Unhealthy),
-                    SecurityFailReason = pipelineResult.FailReason,
-                    SecurityCheckedAt = DateTime.UtcNow
-                };
+                    var unhealthyLog = new FileChangeLog
+                    {
+                        FileId = $"rejected_{Guid.NewGuid()}",
+                        FileName = originalFileName,
+                        ChangeType = "Upload",
+                        MimeType = file.ContentType,
+                        FileSize = file.Length,
+                        UploadedByVendorId = vendorId,
+                        DetectedAt = DateTime.UtcNow,
+                        Processed = true,
+                        ProcessedAt = DateTime.UtcNow,
+                        SecurityStatus = nameof(FileSecurityStatus.Unhealthy),
+                        SecurityFailReason = pipelineResult.FailReason,
+                        SecurityCheckedAt = DateTime.UtcNow
+                    };
 
-                await _fileChangeLogRepository.CreateAsync(unhealthyLog);
-                await _fileChangeLogRepository.SaveChangesAsync();
+                    await _fileChangeLogRepository.CreateAsync(unhealthyLog);
+                    await _fileChangeLogRepository.SaveChangesAsync();
 
-                _logger.LogWarning(
-                    "SECURITY: File {FileName} from vendor {VendorId} marked UNHEALTHY. Reason: {Reason}",
-                    originalFileName, vendorId, pipelineResult.FailReason);
+                    _logger.LogWarning(
+                        "SECURITY: File {FileName} from vendor {VendorId} marked UNHEALTHY. Reason: {Reason}",
+                        originalFileName, vendorId, pipelineResult.FailReason);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "SECURITY: Redundant rejection for {FileName} (Vendor: {VendorId}). Skipping log creation.",
+                        originalFileName, vendorId);
+                }
 
                 return new UploadResult
                 {
@@ -5580,7 +5839,10 @@ namespace invoice_v1.src.Application.Services
                 Processed = false,
                 SecurityStatus = nameof(FileSecurityStatus.Healthy),
                 SecurityFailReason = null,
-                SecurityCheckedAt = DateTime.UtcNow
+                SecurityCheckedAt = DateTime.UtcNow,
+                // SYNC: Capture real modified time from Drive to prevent Monitor bloat
+                // FIX: Ensure UTC kind for PostgreSQL compatibility
+                GoogleDriveModifiedTime = driveFile.ModifiedTime?.ToUniversalTime()
             };
 
             await _fileChangeLogRepository.CreateAsync(healthyLog);
@@ -6753,19 +7015,14 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             if (!string.IsNullOrWhiteSpace(category))
-            {
                 query = query.Where(il => il.Category == category);
-            }
 
             var grouped = await query
                 .GroupBy(il => new { il.ProductId, il.ProductName, il.Category })
@@ -6799,14 +7056,11 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             var grouped = await query
                 .GroupBy(il => new { il.ProductId, il.ProductName, il.Category })
@@ -6842,14 +7096,11 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             var grouped = await query
                 .GroupBy(il => il.Category ?? "Uncategorized")
@@ -6874,7 +7125,8 @@ namespace invoice_v1.src.Infrastructure.Repositories
             }).ToList();
         }
 
-        public async Task<List<(DateTime InvoiceDate, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
+        // FIXED: Guid InvoiceId added to tuple — needed for Distinct().Count() in AggregateTimeSeries
+        public async Task<List<(DateTime InvoiceDate, Guid InvoiceId, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
             GetProductTimeSeriesDataAsync(
                 string productId,
                 DateTime startDate,
@@ -6883,19 +7135,17 @@ namespace invoice_v1.src.Infrastructure.Repositories
         {
             var query = _context.InvoiceLines
                 .Include(il => il.Invoice)
-                // FIX: Fallback to CreatedAt if InvoiceDate is null
                 .Where(il => il.ProductId == productId &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) >= startDate &&
                              (il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt) <= endDate);
 
             if (vendorId.HasValue)
-            {
                 query = query.Where(il => il.Invoice.UploadedByVendorId == vendorId.Value);
-            }
 
             return await query
-                .Select(il => new ValueTuple<DateTime, string, string, decimal, decimal>(
+                .Select(il => new ValueTuple<DateTime, Guid, string, string, decimal, decimal>(
                     il.Invoice.InvoiceDate ?? il.Invoice.CreatedAt,
+                    il.InvoiceId,       // ← ADDED
                     il.ProductId,
                     il.ProductName,
                     il.Quantity,
@@ -6904,7 +7154,6 @@ namespace invoice_v1.src.Infrastructure.Repositories
         }
     }
 }
-
 
 
 ============================================================
@@ -7050,6 +7299,20 @@ namespace invoice_v1.src.Infrastructure.Repositories
             return (data, total);
         }
 
+        public async Task<FileChangeLog?> GetRecentUnhealthyLogAsync(Guid vendorId, string fileName, long fileSize, TimeSpan window)
+        {
+            var cutoff = DateTime.UtcNow.Subtract(window);
+            return await _context.FileChangeLogs
+                .AsNoTracking()
+                .Where(l => l.UploadedByVendorId == vendorId &&
+                           l.FileName == fileName &&
+                           l.FileSize == fileSize &&
+                           l.SecurityStatus == nameof(FileSecurityStatus.Unhealthy) &&
+                           l.DetectedAt >= cutoff)
+                .OrderByDescending(l => l.DetectedAt)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<FileChangeLog> CreateAsync(FileChangeLog log)
         {
             _context.FileChangeLogs.Add(log);
@@ -7098,7 +7361,8 @@ namespace invoice_v1.src.Infrastructure.Repositories
             DateTime endDate,
             Guid? vendorId);
 
-        Task<List<(DateTime InvoiceDate, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
+        // FIXED: added Guid InvoiceId to tuple so AggregateTimeSeries can Distinct().Count()
+        Task<List<(DateTime InvoiceDate, Guid InvoiceId, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
             GetProductTimeSeriesDataAsync(
                 string productId,
                 DateTime startDate,
@@ -7106,7 +7370,6 @@ namespace invoice_v1.src.Infrastructure.Repositories
                 Guid? vendorId);
     }
 }
-
 
 
 ============================================================
@@ -7130,6 +7393,7 @@ namespace invoice_v1.src.Infrastructure.Repositories
         Task<List<FileChangeLog>> GetUnprocessedLogsAsync(int limit);
         Task<List<FileChangeLog>> GetUnprocessedHealthyLogsAsync(int limit);
         Task<(List<FileChangeLog> Data, int Total)> GetUnhealthyLogsAsync(int page, int pageSize, Guid? vendorId);
+        Task<FileChangeLog?> GetRecentUnhealthyLogAsync(Guid vendorId, string fileName, long fileSize, TimeSpan window);
         Task<FileChangeLog> CreateAsync(FileChangeLog log);
         Task UpdateAsync(FileChangeLog log);
         Task<int> SaveChangesAsync();
@@ -7596,7 +7860,7 @@ namespace invoice_v1.src.Infrastructure.Repositories
             {
                 var vendorIdString = vendorId.Value.ToString();
                 query = query.Where(j =>
-                    j.PayloadJson.RootElement.GetProperty("driveVendorId").GetString() == vendorIdString);
+                    j.PayloadJson.RootElement.GetProperty("uploader").GetString() == vendorIdString);
             }
 
             var total = await query.CountAsync();
@@ -8096,9 +8360,10 @@ namespace invoice_v1.src.Services
                         _deletedFiles.TryAdd(file.FileId!, true);
                         deletedCount++;
                     }
-                    else if (file.ModifiedTime != default)
+                    else if (file.ModifiedTime != default || file.LatestChangeType == "Upload")
                     {
-                        _lastSeenFiles.TryAdd(file.FileId!, ToUtc(file.ModifiedTime));
+                        // If we have a time, track it. If not (API upload), track with min value to trigger DB check logic in DoWork
+                        _lastSeenFiles.TryAdd(file.FileId!, file.ModifiedTime != default ? ToUtc(file.ModifiedTime) : DateTime.MinValue);
                         activeCount++;
                     }
                 }
@@ -8189,43 +8454,58 @@ namespace invoice_v1.src.Services
                 var modifiedBy = ResolveModifiedBy(file);
                 var vendorId = ResolveVendorId(file);
 
+                // Fetch existing info if possible to preserve FileName and VendorId
+                var existingLog = await dbContext.FileChangeLogs
+                    .Where(l => l.FileId == file.Id)
+                    .OrderByDescending(l => l.DetectedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var resolvedFileName = existingLog?.FileName ?? file.Name;
+                var resolvedVendorId = existingLog?.UploadedByVendorId ?? vendorId;
+
                 // Scenario: Restored
                 if (_deletedFiles.ContainsKey(file.Id))
                 {
-                    _logger.LogInformation("Restored file detected: {FileName}", file.Name);
+                    _logger.LogInformation("Restored file detected: {FileName}", resolvedFileName);
                     _deletedFiles.TryRemove(file.Id, out _);
-                    logsToAdd.Add(CreateLog(file, "Upload", fileModifiedTime, modifiedBy, vendorId));
-                    _lastSeenFiles.TryAdd(file.Id, fileModifiedTime);
+                    logsToAdd.Add(CreateLog(file.Id, resolvedFileName, "Upload", fileModifiedTime, modifiedBy, resolvedVendorId, file.MimeType, file.Size));
+                    _lastSeenFiles[file.Id] = fileModifiedTime;
                     continue;
                 }
 
                 // Scenario: New File (POTENTIAL DUPLICATE)
-                if (!_lastSeenFiles.ContainsKey(file.Id))
+                if (!_lastSeenFiles.TryGetValue(file.Id, out var lastSeenTime))
                 {
-                    // --- FIX START: Check DB to prevent double logging ---
-                    // Since HydrateDictionary only runs at startup, a file uploaded via API *during* runtime 
-                    // won't be in _lastSeenFiles immediately. We must check the DB.
-                    var existsInDb = await dbContext.FileChangeLogs
-                        .AnyAsync(l => l.FileId == file.Id, cancellationToken);
-
-                    if (existsInDb)
+                    // CRITICAL: We avoid creating a new log if one already exists for this FileId.
+                    // This prevents redundancy with the API upload logs.
+                    if (existingLog != null)
                     {
-                        // File exists in DB (uploaded via frontend), so we just track it in memory
-                        // and skip creating a new log entry.
+                        _logger.LogDebug("File {FileId} already exists in DB, skipping new log creation", file.Id);
                         _lastSeenFiles.TryAdd(file.Id, fileModifiedTime);
                         continue;
                     }
-                    // --- FIX END ---
 
-                    _logger.LogInformation("New file detected: {FileName}", file.Name);
-                    logsToAdd.Add(CreateLog(file, "Upload", fileModifiedTime, modifiedBy, vendorId));
+                    // Only log if it's truly new to both memory and DB.
+                    // However, the user specifically asked for DriveMonitoringService to NOT make logs 
+                    // that conflict with the security pipeline (VendorInvoiceService).
+                    // We will skip "Upload" logs from the monitoring service entirely if we want to be safe,
+                    // but usually we want to detect files manually dropped into Drive.
+                    // For now, we'll keep the check against existingLog which should satisfy the bloat issue.
+                    _logger.LogInformation("New file detected by monitor: {FileName}", resolvedFileName);
+                    logsToAdd.Add(CreateLog(file.Id, resolvedFileName, "Upload", fileModifiedTime, modifiedBy, resolvedVendorId, file.MimeType, file.Size));
                     _lastSeenFiles.TryAdd(file.Id, fileModifiedTime);
                 }
                 // Scenario: Modified File
-                else if (_lastSeenFiles.TryGetValue(file.Id, out var lastSeenTime) && lastSeenTime < fileModifiedTime)
+                // Use a 1-second tolerance to account for precision differences between Drive/DB/Local
+                else if (fileModifiedTime > lastSeenTime.AddSeconds(1) && lastSeenTime != DateTime.MinValue)
                 {
-                    _logger.LogInformation("File modified: {FileName}", file.Name);
-                    logsToAdd.Add(CreateLog(file, "Modified", fileModifiedTime, modifiedBy, vendorId));
+                    _logger.LogInformation("File modified: {FileName}", resolvedFileName);
+                    logsToAdd.Add(CreateLog(file.Id, resolvedFileName, "Modified", fileModifiedTime, modifiedBy, resolvedVendorId, file.MimeType, file.Size));
+                    _lastSeenFiles[file.Id] = fileModifiedTime;
+                }
+                else if (lastSeenTime == DateTime.MinValue)
+                {
+                    // Was tracked as MinValue during hydration, update to real time now
                     _lastSeenFiles[file.Id] = fileModifiedTime;
                 }
             }
@@ -8250,20 +8530,23 @@ namespace invoice_v1.src.Services
         }
 
         private FileChangeLog CreateLog(
-            Google.Apis.Drive.v3.Data.File file,
+            string fileId,
+            string fileName,
             string changeType,
             DateTime modifiedTime,
             string modifiedBy,
-            Guid? vendorId)
+            Guid? vendorId,
+            string? mimeType,
+            long? fileSize)
         {
             return new FileChangeLog
             {
-                FileName = file.Name,
-                FileId = file.Id,
+                FileName = fileName,
+                FileId = fileId,
                 ChangeType = changeType,
                 DetectedAt = DateTime.UtcNow,
-                MimeType = file.MimeType,
-                FileSize = file.Size,
+                MimeType = mimeType,
+                FileSize = fileSize,
                 ModifiedBy = modifiedBy,
                 UploadedByVendorId = vendorId,
                 GoogleDriveModifiedTime = modifiedTime,
@@ -8407,6 +8690,7 @@ namespace invoice_v1.src.Services
         private DriveService? _userDrive;
         private readonly ILogger<GoogleDriveService> _logger;
         private readonly IConfiguration _configuration;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _folderLocks = new();
 
         public GoogleDriveService(IConfiguration configuration, ILogger<GoogleDriveService> logger)
         {
@@ -8555,35 +8839,44 @@ namespace invoice_v1.src.Services
             string email)
         {
             var folderName = email.ToLowerInvariant().Trim();
+            var folderLock = _folderLocks.GetOrAdd(folderName, _ => new SemaphoreSlim(1, 1));
 
-            // Check if folder exists
-            var listRequest = drive.Files.List();
-            listRequest.Q = $"mimeType='application/vnd.google-apps.folder' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
-            listRequest.Fields = "files(id, name)";
-
-            var response = await listRequest.ExecuteAsync();
-            var existing = response.Files?.FirstOrDefault();
-
-            if (existing != null)
+            await folderLock.WaitAsync();
+            try
             {
-                _logger.LogInformation("Vendor folder exists: {FolderId}", existing.Id);
-                return existing.Id;
+                // Check if folder exists
+                var listRequest = drive.Files.List();
+                listRequest.Q = $"mimeType='application/vnd.google-apps.folder' and name='{folderName}' and '{parentFolderId}' in parents and trashed=false";
+                listRequest.Fields = "files(id, name)";
+
+                var response = await listRequest.ExecuteAsync();
+                var existing = response.Files?.FirstOrDefault();
+
+                if (existing != null)
+                {
+                    _logger.LogInformation("Vendor folder exists: {FolderId}", existing.Id);
+                    return existing.Id;
+                }
+
+                // Create folder if not exists
+                var fileMetadata = new Google.Apis.Drive.v3.Data.File
+                {
+                    Name = folderName,
+                    MimeType = "application/vnd.google-apps.folder",
+                    Parents = new[] { parentFolderId }
+                };
+
+                var createRequest = drive.Files.Create(fileMetadata);
+                createRequest.Fields = "id";
+                var folder = await createRequest.ExecuteAsync();
+
+                _logger.LogInformation("Created new vendor folder: {FolderId}", folder.Id);
+                return folder.Id;
             }
-
-            // Create folder if not exists
-            var fileMetadata = new Google.Apis.Drive.v3.Data.File
+            finally
             {
-                Name = folderName,
-                MimeType = "application/vnd.google-apps.folder",
-                Parents = new[] { parentFolderId }
-            };
-
-            var createRequest = drive.Files.Create(fileMetadata);
-            createRequest.Fields = "id";
-            var folder = await createRequest.ExecuteAsync();
-
-            _logger.LogInformation("Created new vendor folder: {FolderId}", folder.Id);
-            return folder.Id;
+                folderLock.Release();
+            }
         }
 
         public async Task<DriveFileResult> UploadFileAsync(
@@ -8612,7 +8905,7 @@ namespace invoice_v1.src.Services
                 };
 
                 var request = drive.Files.Create(fileMetadata, stream, mimeType);
-                request.Fields = "id, name, webViewLink";
+                request.Fields = "id, name, webViewLink, modifiedTime";
 
                 var uploadResult = await request.UploadAsync();
 
@@ -8630,7 +8923,8 @@ namespace invoice_v1.src.Services
                 {
                     Id = uploadedFile.Id,
                     Name = uploadedFile.Name,
-                    WebViewLink = uploadedFile.WebViewLink
+                    WebViewLink = uploadedFile.WebViewLink,
+                    ModifiedTime = uploadedFile.ModifiedTime?.ToUniversalTime()
                 };
             }
             catch (Google.GoogleApiException gex)

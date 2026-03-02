@@ -22,7 +22,8 @@ namespace invoice_v1.src.Infrastructure.Repositories
             DateTime endDate,
             Guid? vendorId);
 
-        Task<List<(DateTime InvoiceDate, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
+        // FIXED: added Guid InvoiceId to tuple so AggregateTimeSeries can Distinct().Count()
+        Task<List<(DateTime InvoiceDate, Guid InvoiceId, string ProductId, string ProductName, decimal Quantity, decimal Amount)>>
             GetProductTimeSeriesDataAsync(
                 string productId,
                 DateTime startDate,

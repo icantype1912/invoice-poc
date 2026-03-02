@@ -13,7 +13,7 @@ venv/
 env/
 ENV/
 .venv
-
+venv312/
 # IDEs
 .vscode/
 .idea/

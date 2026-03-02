@@ -1,0 +1,6253 @@
+﻿============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.config.server.ts
+============================================================
+import { mergeApplicationConfig, ApplicationConfig } from '@angular/core';
+import { provideServerRendering, withRoutes } from '@angular/ssr';
+import { appConfig } from './app.config';
+import { serverRoutes } from './app.routes.server';
+
+const serverConfig: ApplicationConfig = {
+  providers: [
+    provideServerRendering(withRoutes(serverRoutes))
+  ]
+};
+
+export const config = mergeApplicationConfig(appConfig, serverConfig);
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.config.ts
+============================================================
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { routes } from './app.routes';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { jwtInterceptor } from './core/interceptors/jwt.interceptors';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideHttpClient(withInterceptors([jwtInterceptor])),
+    provideRouter(routes), 
+    provideClientHydration(withEventReplay())
+  ]
+};
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.css
+============================================================
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.html
+============================================================
+<app-navbar/>
+<router-outlet />
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.routes.server.ts
+============================================================
+import { RenderMode, ServerRoute } from '@angular/ssr';
+
+export const serverRoutes: ServerRoute[] = [
+  {
+    path: '**',
+    renderMode: RenderMode.Prerender
+  }
+];
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.routes.ts
+============================================================
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth-guard';
+import { guestGuard } from './core/guards/guest-guard';
+import { adminGuard } from './core/guards/admin-guard';
+
+export const routes: Routes = [
+  {
+    path: '',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/landing/landing').then(m => m.Landing),
+  },
+  {
+    path: 'login',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/login/login').then(m => m.Login),
+  },
+  {
+    path: 'signup',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/signup/signup').then(m => m.Signup),
+  },
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/dashboard/dashboard').then(m => m.Dashboard),
+  },
+  {
+    path: 'upload',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/upload/upload').then(m => m.Upload),
+  },
+  {
+    path: 'invoices',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/invoices/invoices').then(m => m.Invoices),
+  },
+  {
+    path: 'products',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/products/products').then(m => m.Products),
+  },
+  {
+    path: 'logs',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/logs/logs').then(m => m.Logs),
+  },
+  {
+    path: 'jobs',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/job-queue/job-queue').then(m => m.JobQueue),
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/admin/admin').then(m => m.Admin),
+      },
+    ]
+  },
+  { path: '**', redirectTo: '' }
+];
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.spec.ts
+============================================================
+import { TestBed } from '@angular/core/testing';
+import { App } from './app';
+
+describe('App', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [App],
+    }).compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+
+  it('should render title', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, AvFrontEnd');
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\app.ts
+============================================================
+import { Component, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { Navbar } from './core/layout/navbar/navbar';
+import { Theme } from './core/services/theme';
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet,Navbar],
+  templateUrl: './app.html',
+  styleUrl: './app.css'
+})
+export class App {
+  protected readonly title = signal('AvFrontEnd');
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\guards\admin-guard.ts
+============================================================
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { Auth } from '../services/auth';
+
+export const adminGuard: CanActivateFn = () => {
+
+  const auth = inject(Auth);
+  const router = inject(Router);
+
+  if (!auth.isLoggedIn) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (!auth.isAdmin) {
+    return router.createUrlTree(['/dashboard']);
+  }
+
+  return true;
+};
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\guards\auth-guard.spec.ts
+============================================================
+import { TestBed } from '@angular/core/testing';
+import { CanActivateFn } from '@angular/router';
+
+import { authGuard } from './auth-guard';
+
+describe('authGuard', () => {
+  const executeGuard: CanActivateFn = (...guardParameters) => 
+      TestBed.runInInjectionContext(() => authGuard(...guardParameters));
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+  });
+
+  it('should be created', () => {
+    expect(executeGuard).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\guards\auth-guard.ts
+============================================================
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { Auth } from '../services/auth';
+
+export const authGuard: CanActivateFn = () => {
+
+  const auth = inject(Auth);
+  const router = inject(Router);
+
+  if (!auth.isLoggedIn) {
+    router.navigate(['/login']);
+    return false;
+  }
+
+  return true;
+};
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\guards\guest-guard.ts
+============================================================
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { Auth } from '../services/auth';
+
+export const guestGuard: CanActivateFn = () => {
+
+  const auth = inject(Auth);
+  const router = inject(Router);
+
+  if (auth.isLoggedIn) {
+    router.navigate(['/dashboard']);
+    return false;
+  }
+
+  return true;
+};
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\interceptors\jwt.interceptors.ts
+============================================================
+import { inject } from '@angular/core';
+import { HttpInterceptorFn } from '@angular/common/http';
+import { Auth } from '../services/auth';
+
+export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
+
+  const auth = inject(Auth);
+  const token = auth.getToken();
+
+  const headers: any = {
+    'ngrok-skip-browser-warning': 'true'
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const cloned = req.clone({
+    setHeaders: headers
+  });
+
+  return next(cloned);
+};
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\navbar\navbar.css
+============================================================
+/* â”€â”€â”€ Navbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 56px;
+  background: var(--avevapurple);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  z-index: 100;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.logo.disabled {
+  cursor: default;
+}
+
+.logo img {
+  height: 30px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  transition: opacity 0.2s ease;
+}
+
+.logo img:hover {
+  opacity: 0.85;
+}
+
+/* â”€â”€â”€ Nav Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.nav-link:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* â”€â”€â”€ Right Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* â”€â”€â”€ Theme Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.theme-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.theme-btn:hover svg {
+  transform: rotate(15deg);
+}
+
+/* â”€â”€â”€ Avatar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.user-menu {
+  position: relative;
+}
+
+.avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.avatar-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.06);
+}
+
+/* â”€â”€â”€ Dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: dropdown-in 0.15s ease;
+  z-index: 200;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-role {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dropdown-role strong {
+  color: var(--text-primary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.logout-item {
+  color: #ff5a5a;
+}
+
+.logout-item:hover {
+  background: rgba(255, 80, 80, 0.08);
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\navbar\navbar.html
+============================================================
+<nav class="navbar">
+
+  <div class="left">
+    <span class="logo" [routerLink]="isLoggedIn ? null : '/'" [class.disabled]="isLoggedIn">
+      <img [src]="logoSrc()" alt="Aveva Logo" />
+    </span>
+
+    @if (isLoggedIn && isVendor) {
+    <a routerLink="/upload" class="nav-link">Upload</a>
+    }
+
+    @if (isLoggedIn) {
+    <a routerLink="/dashboard" class="nav-link">Dashboard</a>
+    <a routerLink="/invoices" class="nav-link">Invoices</a>
+    <a routerLink="/products" class="nav-link">Products</a>
+    <a routerLink="/logs" class="nav-link">Logs</a>
+    <a routerLink="/jobs" class="nav-link">Job Queue</a>
+    }
+
+    @if (isLoggedIn && isAdmin) {
+    <a routerLink="/admin" class="nav-link">Admin</a>
+    }
+
+    @if (!isLoggedIn && !isLandingPage) {
+    <a routerLink="/login" class="nav-link">Login</a>
+    <a routerLink="/signup" class="nav-link">Signup</a>
+    }
+  </div>
+
+  <div class="right">
+    <!-- Sun / Moon toggle -->
+    <button class="theme-btn" (click)="toggleTheme()"
+      [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+      @if (isDark()) {
+      <!-- Moon (half) -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      } @else {
+      <!-- Sun -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+      }
+    </button>
+
+    <!-- User avatar + dropdown -->
+    @if (isLoggedIn) {
+    <div class="user-menu">
+      <button class="avatar-btn" (click)="toggleDropdown()">
+        {{ getUserInitials() }}
+      </button>
+
+      @if (dropdownOpen()) {
+      <div class="dropdown">
+        <div class="dropdown-role">Signed in as <strong>{{ getRoleLabel() }}</strong></div>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item logout-item" (click)="logout()">Logout</button>
+      </div>
+      }
+    </div>
+    }
+  </div>
+
+</nav>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\navbar\navbar.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Navbar } from './navbar';
+
+describe('Navbar', () => {
+  let component: Navbar;
+  let fixture: ComponentFixture<Navbar>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Navbar]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Navbar);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\navbar\navbar.ts
+============================================================
+import { Component, computed, signal, HostListener } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { Theme } from '../../services/theme';
+import { Auth } from '../../services/auth';
+
+@Component({
+  selector: 'app-navbar',
+  standalone: true,
+  imports: [RouterLink],
+  templateUrl: './navbar.html',
+  styleUrls: ['./navbar.css'],
+})
+export class Navbar {
+
+  logoSrc = computed(() =>
+    this.theme.isDark()
+      ? '/logo.svg'
+      : '/logolight.svg'
+  );
+
+  isDark = computed(() => this.theme.isDark());
+
+  dropdownOpen = signal(false);
+
+  constructor(
+    public theme: Theme,
+    public auth: Auth,
+    private router: Router
+  ) { }
+
+  get isLoggedIn(): boolean {
+    return this.auth.isLoggedIn;
+  }
+
+  get isAdmin(): boolean {
+    return this.auth.isAdmin;
+  }
+
+  get isVendor(): boolean {
+    return this.auth.isUser;
+  }
+
+  getUserInitials(): string {
+    const email = this.auth.getEmail();
+    if (!email) return '?';
+    const parts = email.split('@')[0].split(/[._-]/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return email.slice(0, 2).toUpperCase();
+  }
+
+  getRoleLabel(): string {
+    const role = this.auth.getRole();
+    return role === 'Admin' ? 'Admin' : 'Vendor';
+  }
+
+  toggleTheme() {
+    this.theme.toggle();
+  }
+
+  toggleDropdown() {
+    this.dropdownOpen.update(v => !v);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.user-menu')) {
+      this.dropdownOpen.set(false);
+    }
+  }
+
+  get isLandingPage(): boolean {
+    return this.router.url === '/' || this.router.url === '';
+  }
+
+  logout() {
+    this.dropdownOpen.set(false);
+    this.auth.clearToken();
+    this.router.navigate(['/login']);
+  }
+}
+
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\sidebar\sidebar.css
+============================================================
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\sidebar\sidebar.html
+============================================================
+<p>sidebar works!</p>
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\sidebar\sidebar.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Sidebar } from './sidebar';
+
+describe('Sidebar', () => {
+  let component: Sidebar;
+  let fixture: ComponentFixture<Sidebar>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Sidebar]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Sidebar);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\layout\sidebar\sidebar.ts
+============================================================
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-sidebar',
+  imports: [],
+  templateUrl: './sidebar.html',
+  styleUrl: './sidebar.css',
+})
+export class Sidebar {
+
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\services\analytics.service.ts
+============================================================
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+export type CategorySales = {
+    category: string;
+    totalRevenue: number;
+    invoiceCount: number;
+    productCount: number;
+    totalQuantity: number;
+    averageOrderValue: number;
+};
+
+export type ProductTrend = {
+    rank: number;
+    productId: string;
+    productName: string;
+    category: string;
+    totalQuantity: number;
+    totalRevenue: number;
+    invoiceCount: number;
+    growthRate: number;
+};
+
+export type ProductSales = {
+    productId: string;
+    productName: string;
+    category: string;
+    totalQuantity: number;
+    totalRevenue: number;
+    invoiceCount: number;
+    averageUnitRate: number;
+};
+
+export type ProductTimeSeries = {
+    period: string;
+    productId: string;
+    productName: string;
+    quantity: number;
+    revenue: number;
+    invoiceCount: number;
+};
+
+@Injectable({ providedIn: 'root' })
+export class AnalyticsService {
+    private baseUrl = environment.apiUrl;
+
+    constructor(private http: HttpClient) { }
+
+    getCategorySales(startDate: Date, endDate: Date): Observable<CategorySales[]> {
+        const params = new HttpParams()
+            .set('startDate', startDate.toISOString())
+            .set('endDate', endDate.toISOString());
+        return this.http.get<CategorySales[]>(`${this.baseUrl}/analytics/categories/sales`, { params });
+    }
+
+    getTrendingProducts(startDate: Date, endDate: Date, topN = 5): Observable<ProductTrend[]> {
+        const params = new HttpParams()
+            .set('startDate', startDate.toISOString())
+            .set('endDate', endDate.toISOString())
+            .set('topN', topN);
+        return this.http.get<ProductTrend[]>(`${this.baseUrl}/analytics/products/trending`, { params });
+    }
+
+    getProductSales(startDate: Date, endDate: Date, category?: string): Observable<ProductSales[]> {
+        let params = new HttpParams()
+            .set('startDate', startDate.toISOString())
+            .set('endDate', endDate.toISOString());
+        if (category) params = params.set('category', category);
+        return this.http.get<ProductSales[]>(`${this.baseUrl}/analytics/products/sales`, { params });
+    }
+
+    getProductTimeSeries(
+        productId: string,
+        startDate: Date,
+        endDate: Date,
+        granularity = 'Monthly'
+    ): Observable<ProductTimeSeries[]> {
+        const params = new HttpParams()
+            .set('startDate', startDate.toISOString())
+            .set('endDate', endDate.toISOString())
+            .set('granularity', granularity);
+        return this.http.get<ProductTimeSeries[]>(
+            `${this.baseUrl}/analytics/products/${productId}/timeseries`,
+            { params }
+        );
+    }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\services\api.service.ts
+============================================================
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+function joinUrl(base: string, path: string): string {
+  const b = (base ?? '').replace(/\/+$/, '');
+  const p = (path ?? '').replace(/^\/+/, '');
+  return `${b}/${p}`;
+}
+
+// ----------------------------- LOGS ------------------------------
+export type FileChangeLog = {
+  id: number;
+  fileName: string;
+  fileId: string;
+  changeType: string;
+  detectedAt: string;
+  mimeType: string;
+  fileSize: number;
+  modifiedBy: string;
+  googleDriveModifiedTime: string;
+  processed: boolean;
+  processedAt: string | null;
+  uploadedByVendorId: string;
+  securityStatus: string;
+  securityFailReason: string | null;
+  securityCheckedAt: string | null;
+};
+
+export type LogsResponse = {
+  logs: FileChangeLog[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type LogStats = {
+  totalFiles: number;
+  totalProcessed: number;
+  totalPending: number;
+  byChangeType: Array<{
+    changeType: string;
+    count: number;
+    processed: number;
+    pending: number;
+  }>;
+};
+
+// ----------------------------- PRODUCTS ------------------------------
+export type Product = {
+  id: string;
+  productId: string;
+  productName: string;
+  category?: string;
+  primaryCategory?: string;
+  secondaryCategory?: string;
+  defaultUnitRate?: number;
+  totalQuantitySold: number;
+  totalRevenue: number;
+  invoiceCount: number;
+  lastSoldDate?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProductsResponse = {
+  products: Product[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type Category = {
+  category: string;
+  productCount: number;
+  totalRevenue: number;
+};
+
+// ----------------------------- INVOICES ------------------------------
+export type InvoiceLineDto = {
+  id: string;
+  productName: string;
+  category?: string;
+  productId: string;
+  quantity: number;
+  unitRate: number;
+  amount: number;
+};
+
+export type DiscountDto = {
+  percentage?: number;
+  amount?: number;
+};
+
+export type ShipToDto = {
+  city?: string;
+  state?: string;
+  country?: string;
+};
+
+export type InvoiceDto = {
+  id: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  orderId?: string;
+  vendorName?: string;
+  billToName?: string;
+  shipTo?: ShipToDto;
+  shipMode?: string;
+  subtotal?: number;
+  discount?: DiscountDto;
+  shippingCost?: number;
+  totalAmount?: number;
+  balanceDue?: number;
+  currency?: string;
+  notes?: string;
+  terms?: string;
+  driveFileId?: string;
+  originalFileName?: string;
+  extractedData?: any;
+  uploadedByVendorId?: string;
+  createdAt: string;
+  updatedAt: string;
+  lineItems: InvoiceLineDto[];
+};
+
+export type InvoicesResponse = {
+  invoices: InvoiceDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+// ----------------------------- INVALID INVOICES ------------------------------
+export type InvalidInvoiceType = 'ExtractionFailure' | 'SecurityViolation';
+
+export type InvalidInvoice = {
+  id: string;
+  fileId: string | null;
+  fileName: string | null;
+  vendorId: string | null;
+  jobId: string | null;
+  reason: string | null;
+  createdAt: string;
+  type: InvalidInvoiceType;
+};
+
+export type InvalidInvoicesResponse = {
+  data: InvalidInvoice[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+// ----------------------------- JOB QUEUE ------------------------------
+export type JobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'INVALID' | 'FAILED';
+
+export type JobQueueItem = {
+  id: string;
+  jobType: string;
+  status: JobStatus;
+  retryCount: number;
+  lockedBy: string | null;
+  lockedAt: string | null;
+  nextRetryAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  payloadJson: any;
+  errorMessage: any;
+};
+
+export type JobQueueResponse = {
+  jobs: JobQueueItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ApiService {
+  private baseUrl = environment.apiUrl;
+
+  constructor(private http: HttpClient) { }
+
+  // ----------------------------- LOGS ------------------------------
+  getLogs(page = 1, pageSize = 50, changeType?: string): Observable<LogsResponse> {
+    const url = joinUrl(this.baseUrl, 'logs');
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+    if (changeType) {
+      params = params.set('changeType', changeType);
+    }
+    return this.http.get<LogsResponse>(url, { params });
+  }
+
+  getLogStats(): Observable<LogStats> {
+    const url = joinUrl(this.baseUrl, 'logs/stats');
+    return this.http.get<LogStats>(url);
+  }
+
+  // ----------------------------- PRODUCTS ------------------------------
+  getProducts(page = 1, pageSize = 50, category?: string, search?: string): Observable<ProductsResponse> {
+    const url = joinUrl(this.baseUrl, 'products');
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+    if (category) {
+      params = params.set('category', category);
+    }
+    if (search) {
+      params = params.set('search', search);
+    }
+    return this.http.get<ProductsResponse>(url, { params });
+  }
+
+  getProductCategories(): Observable<Category[]> {
+    const url = joinUrl(this.baseUrl, 'products/categories');
+    return this.http.get<Category[]>(url);
+  }
+
+  // ----------------------------- INVOICES ------------------------------
+  getInvoices(page = 1, pageSize = 20): Observable<InvoicesResponse> {
+    const url = joinUrl(this.baseUrl, 'invoices');
+    const params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+    return this.http.get<InvoicesResponse>(url, { params });
+  }
+
+  getInvoiceById(id: string): Observable<InvoiceDto> {
+    const url = joinUrl(this.baseUrl, `invoices/${encodeURIComponent(id)}`);
+    return this.http.get<InvoiceDto>(url);
+  }
+
+  getInvoicesByFileId(fileId: string): Observable<InvoiceDto> {
+    const url = joinUrl(this.baseUrl, `invoices/by-file/${encodeURIComponent(fileId)}`);
+    return this.http.get<InvoiceDto>(url);
+  }
+
+  // ----------------------------- INVALID INVOICES ------------------------------
+  getInvalidInvoices(page = 1, pageSize = 20): Observable<InvalidInvoicesResponse> {
+    const url = joinUrl(this.baseUrl, 'invalid-invoices');
+    const params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+    return this.http.get<InvalidInvoicesResponse>(url, { params });
+  }
+
+  requeueInvalidInvoice(jobId: string): Observable<unknown> {
+    const url = joinUrl(
+      this.baseUrl,
+      `invalid-invoices/${encodeURIComponent(jobId)}/requeue`
+    );
+    return this.http.post(url, {});
+  }
+
+  // ----------------------------- JOB QUEUE ------------------------------
+  getJobs(page = 1, pageSize = 50, status?: JobStatus): Observable<JobQueueResponse> {
+    const url = joinUrl(this.baseUrl, 'jobs');
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+    if (status) {
+      params = params.set('status', status);
+    }
+    return this.http.get<JobQueueResponse>(url, { params });
+  }
+
+  getJobById(id: string): Observable<JobQueueItem> {
+    const url = joinUrl(this.baseUrl, `jobs/${encodeURIComponent(id)}`);
+    return this.http.get<JobQueueItem>(url);
+  }
+
+  requeueJob(id: string): Observable<unknown> {
+    const url = joinUrl(this.baseUrl, `jobs/${encodeURIComponent(id)}/requeue`);
+    return this.http.post(url, {});
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\services\auth.spec.ts
+============================================================
+import { TestBed } from '@angular/core/testing';
+
+import { Auth } from './auth';
+
+describe('Auth', () => {
+  let service: Auth;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(Auth);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\services\auth.ts
+============================================================
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { jwtDecode } from 'jwt-decode';
+import { environment } from '../../../environments/environment';
+
+function joinUrl(base: string, path: string): string {
+  const b = (base ?? '').replace(/\/+$/, '');
+  const p = (path ?? '').replace(/^\/+/, '');
+  return `${b}/${p}`;
+}
+
+export interface LoginRequest { email?: string; password?: string; }
+export interface SignupRequest { email?: string; password?: string; companyName?: string; address?: string; phoneNumber?: string; driveFolderId?: string; }
+
+@Injectable({ providedIn: 'root' })
+export class Auth {
+  private api = joinUrl(environment.apiUrl, 'auth');
+  private decoded: any | null = null;
+
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
+
+  login(data: LoginRequest): Observable<any> {
+    const url = joinUrl(this.api, 'login');
+    return this.http.post(url, data);
+  }
+
+  signup(data: SignupRequest): Observable<any> {
+    const url = joinUrl(this.api, 'signup');
+    return this.http.post(url, data);
+  }
+
+  getToken(): string | null {
+    if (isPlatformBrowser(this.platformId)) {
+      return localStorage.getItem('token');
+    }
+    return null;
+  }
+
+  setToken(token: string): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('token', token);
+      this.decoded = null;
+    }
+  }
+
+  clearToken(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('token');
+      this.decoded = null;
+    }
+  }
+
+  get isLoggedIn(): boolean {
+    return !!this.getToken();
+  }
+
+  private getDecoded(): any | null {
+    if (this.decoded) return this.decoded;
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      this.decoded = jwtDecode(token);
+      return this.decoded;
+    } catch {
+      return null;
+    }
+  }
+
+  getRole(): string | null {
+    const decoded = this.getDecoded();
+    if (!decoded) return null;
+    // C# sets claims as either 'role' or the full schema URL
+    return decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || null;
+  }
+
+  get isAdmin(): boolean {
+    const role = this.getRole();
+    return typeof role === 'string' && role.toLowerCase() === 'admin';
+  }
+
+  get isUser(): boolean {
+    const role = this.getRole();
+    return typeof role === 'string' && role.toLowerCase() === 'vendor';
+  }
+
+  getUserId(): string | null {
+    const decoded = this.getDecoded();
+    if (!decoded) return null;
+    return decoded.sub || decoded.nameid || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || null;
+  }
+
+  getEmail(): string | null {
+    const decoded = this.getDecoded();
+    if (!decoded) return null;
+    return decoded.email || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || decoded.unique_name || null;
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\services\theme.spec.ts
+============================================================
+import { TestBed } from '@angular/core/testing';
+
+import { Theme } from './theme';
+
+describe('Theme', () => {
+  let service: Theme;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(Theme);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\core\services\theme.ts
+============================================================
+import { Injectable, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class Theme {
+  private document = inject(DOCUMENT);
+
+  private _isDark = signal(false);
+  isDark = this._isDark.asReadonly();
+
+  constructor() {
+    this.setDark(true);
+  }
+
+  toggle() {
+    this.setDark(!this._isDark());
+  }
+
+  setDark(value: boolean) {
+    this._isDark.set(value);
+
+    const theme = value ? 'dark' : 'light';
+
+    // SAFE: Angular-provided document
+    this.document.body.setAttribute('data-theme', theme);
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\admin\admin.css
+============================================================
+.admin-page {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.admin-page h2 {
+  margin: 30px 0 14px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  opacity: 0.9;
+}
+
+/* ===== CARD ===== */
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+
+  background: linear-gradient(135deg,
+      rgba(0, 0, 0, 0.03),
+      rgba(0, 0, 0, 0.01));
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 73, 248, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== TABLE ===== */
+.table {
+  margin-top: 10px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1fr 1.5fr;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.row:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.row.header {
+  font-size: 13px;
+  opacity: 0.6;
+  font-weight: 600;
+  background: transparent;
+}
+
+.role {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.status {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ===== ACTION BUTTONS ===== */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+
+  background: rgba(99, 73, 248, 0.12);
+  color: var(--text-primary);
+
+  transition: all 0.2s ease;
+}
+
+.actions button:hover {
+  background: rgba(99, 73, 248, 0.18);
+  transform: translateY(-1px);
+}
+
+.actions button.danger {
+  background: rgba(255, 80, 80, 0.12);
+  color: #d93025;
+}
+
+.actions button.danger:hover {
+  background: rgba(255, 80, 80, 0.2);
+}
+
+/* ===== TOOLBAR ===== */
+.admin-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  background: linear-gradient(135deg,
+      rgba(99, 73, 248, 0.15),
+      rgba(99, 73, 248, 0.08));
+
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(99, 73, 248, 0.25);
+}
+
+[data-theme="dark"] .card {
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .card:hover {
+  border-color: rgba(140, 120, 255, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .row {
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .role {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .status {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .actions button {
+  background: rgba(140, 120, 255, 0.15);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .actions button:hover {
+  background: rgba(140, 120, 255, 0.25);
+}
+
+[data-theme="dark"] .actions button.danger {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff7a7a;
+}
+
+[data-theme="dark"] .actions button.danger:hover {
+  background: rgba(255, 80, 80, 0.3);
+}
+
+[data-theme="dark"] .refresh-btn {
+  background: linear-gradient(135deg,
+      rgba(140, 120, 255, 0.25),
+      rgba(140, 120, 255, 0.15));
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .refresh-btn:hover {
+  background: rgba(140, 120, 255, 0.35);
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\admin\admin.html
+============================================================
+<section class="admin-page">
+
+  <div class="admin-toolbar">
+    <button class="refresh-btn" (click)="refresh()">Refresh</button>
+  </div>
+
+
+  <h2>Pending Approvals</h2>
+
+  <div class="table">
+
+    <div class="row header">
+      <div>Email</div>
+      <div>Company</div>
+      <div>Role</div>
+      <div>Status</div>
+      <div class="actions-col">Actions</div>
+    </div>
+
+    @for (user of pendingUsers(); track user.id) {
+    <div class="row">
+      <div>{{ user.email }}</div>
+      <div>{{ user.companyName ?? 'â€”' }}</div>
+      <div class="role">{{ roleLabel(user.role) }}</div>
+      <div class="status">{{ statusLabel(user.status) }}</div>
+
+      <div class="actions">
+        <button (click)="approve(user.id)">Approve</button>
+        <button class="danger" (click)="reject(user.id)">Reject</button>
+      </div>
+    </div>
+    } @empty {
+    <p class="empty">No pending users</p>
+    }
+
+  </div>
+
+
+
+  <h2>All Users</h2>
+
+  <div class="table">
+
+    <div class="row header">
+      <div>Email</div>
+      <div>Company</div>
+      <div>Role</div>
+      <div>Status</div>
+      <div class="actions-col">Actions</div>
+    </div>
+
+    @for (user of users(); track user.id) {
+    <div class="row">
+
+      <div>{{ user.email }}</div>
+
+      <div>{{ user.companyName ?? 'â€”' }}</div>
+
+      <div class="role">
+        {{ roleLabel(user.role) }}
+      </div>
+
+      <div class="status">
+        {{ statusLabel(user.status) }}
+      </div>
+
+      <div class="actions">
+
+        @if (!isCurrentUser(user.id) && user.role !== 0 && user.status === 1) {
+        <button (click)="promote(user.id)">Promote</button>
+        }
+
+        @if (user.status === 3) {
+        <button (click)="unlock(user.id)">Unlock</button>
+        }
+
+        @if (!isCurrentUser(user.id)) {
+        <button class="danger" (click)="delete(user.id)">Delete</button>
+        }
+
+      </div>
+
+    </div>
+    } @empty {
+    <p class="empty">No users found</p>
+    }
+
+  </div>
+
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\admin\admin.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Admin } from './admin';
+
+describe('Admin', () => {
+  let component: Admin;
+  let fixture: ComponentFixture<Admin>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Admin]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Admin);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\admin\admin.ts
+============================================================
+import { Component, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Auth } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
+type User = {
+  id: string;
+  email: string;
+  companyName?: string;
+  role: number;
+  status: number;
+};
+
+@Component({
+  selector: 'app-admin',
+  standalone: true,
+  templateUrl: './admin.html',
+  styleUrl: './admin.css',
+})
+export class Admin {
+
+  constructor(private http: HttpClient, public auth: Auth) { }
+
+  private api = environment.apiUrl + '/admin';
+
+
+  pendingUsers = signal<User[]>([]);
+  users = signal<User[]>([]);
+
+  ngOnInit() {
+    this.refresh();
+  }
+
+  refresh() {
+    this.loadPending();
+    this.loadUsers();
+  }
+
+  isCurrentUser(id: string) {
+    return this.auth.getUserId() === id;
+  }
+
+
+  loadPending() {
+    this.http.get<User[]>(`${this.api}/users/pending`)
+      .subscribe(res => this.pendingUsers.set(res));
+  }
+
+  loadUsers() {
+    this.http.get<User[]>(`${this.api}/users`)
+      .subscribe(res => this.users.set(res));
+  }
+
+  approve(id: string) {
+    this.http.post(`${this.api}/users/${id}/approve`, {})
+      .subscribe(() => this.refresh());
+  }
+
+  reject(id: string) {
+    this.http.post(`${this.api}/users/${id}/reject`, { reason: 'Rejected by admin' })
+      .subscribe(() => this.refresh());
+  }
+
+  promote(id: string) {
+    this.http.post(`${this.api}/users/${id}/promote`, {})
+      .subscribe(() => this.refresh());
+  }
+
+  delete(id: string) {
+    this.http.delete(`${this.api}/users/${id}`)
+      .subscribe(() => this.refresh());
+  }
+
+  unlock(id: string) {
+    this.http.post(`${this.api}/users/${id}/unlock`, {})
+      .subscribe(() => this.refresh());
+  }
+
+  // ---------------- LABEL HELPERS ----------------
+
+  roleLabel(role: number) {
+    if (role === 0) return 'Admin';
+    if (role === 1) return 'Vendor';
+    return 'Unknown';
+  }
+
+  statusLabel(status: number) {
+    if (status === 0) return 'Pending';
+    if (status === 1) return 'Approved';
+    if (status === 2) return 'Rejected';
+    if (status === 3) return 'Locked';
+    return 'Unknown';
+  }
+}
+
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\login\login.css
+============================================================
+.auth-page {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 36px 36px;
+  border-radius: 18px;
+
+  background: var(--bg-elevated);
+  backdrop-filter: blur(16px);
+
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.35);
+}
+
+.auth-title {
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  line-height: 1.25;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+
+.error-banner {
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .error-banner {
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.eye-btn:hover {
+  color: var(--text-primary);
+}
+
+label {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--text-muted);
+
+  background: transparent;
+  color: var(--text-primary);
+
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--glow-cyan);
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+
+  background: var(--purple);
+  color: #ffffff;
+  font-weight: 600;
+
+  margin-top: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.switch {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+.switch a {
+  color: var(--purple);
+  text-decoration: none;
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\login\login.html
+============================================================
+<section class="auth-page">
+  <div class="auth-card">
+    <h1 class="auth-title">Welcome Back</h1>
+    <p class="auth-subtitle">
+      Sign in to continue
+    </p>
+
+    @if (errorMessage()) {
+    <div class="error-banner">
+      {{ errorMessage() }}
+    </div>
+    }
+
+    <form (ngSubmit)="login()">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" name="email" required placeholder="you@example.com" />
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" required
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+          <button type="button" class="eye-btn" (click)="togglePassword()" aria-label="Toggle password visibility">
+            @if (showPassword()) {
+            <!-- Eye Off icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            } @else {
+            <!-- Eye icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      <button class="auth-btn" type="submit" [disabled]="isLoading()">
+        {{ isLoading() ? 'Signing inâ€¦' : 'Login' }}
+      </button>
+    </form>
+
+    <p class="switch">
+      Don't have an account?
+      <a routerLink="/signup">Create one</a>
+    </p>
+  </div>
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\login\login.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Login } from './login';
+
+describe('Login', () => {
+  let component: Login;
+  let fixture: ComponentFixture<Login>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Login]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Login);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\login\login.ts
+============================================================
+import { Component, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { Auth } from '../../../core/services/auth';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [FormsModule, RouterLink],
+  templateUrl: './login.html',
+  styleUrl: './login.css',
+})
+export class Login {
+  constructor(
+    private auth: Auth,
+    private router: Router
+  ) { }
+
+  email = '';
+  password = '';
+  errorMessage = signal('');
+  isLoading = signal(false);
+  showPassword = signal(false);
+
+  togglePassword() {
+    this.showPassword.update(v => !v);
+  }
+
+  login() {
+    this.errorMessage.set('');
+
+    if (!this.email || !this.password) {
+      this.errorMessage.set('Email and password are required');
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    this.auth.login({
+      email: this.email,
+      password: this.password,
+    }).subscribe({
+      next: (res) => {
+        this.isLoading.set(false);
+        this.auth.setToken(res.accessToken);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+
+        if (err.status === 401) {
+          this.errorMessage.set('Invalid email or password');
+        } else if (err.status === 403) {
+          this.errorMessage.set('Your account has not been approved yet. Please wait for admin approval.');
+        } else if (err.status === 429) {
+          const msg = err.error?.message || 'Too many login attempts. Please try again later.';
+          this.errorMessage.set(msg);
+        } else if (err.status === 400) {
+          const msg = err.error?.message || 'Invalid email or password';
+          this.errorMessage.set(msg);
+        } else {
+          this.errorMessage.set('An unexpected error occurred. Please try again.');
+        }
+      }
+    });
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\signup\signup.css
+============================================================
+.auth-page {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 36px 36px;
+  border-radius: 18px;
+
+  background: var(--bg-elevated);
+  backdrop-filter: blur(16px);
+
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.35);
+}
+
+.auth-title {
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  line-height: 1.25;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+
+.error-banner {
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .error-banner {
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.success-banner {
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .success-banner {
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.12);
+  border-color: rgba(22, 163, 74, 0.25);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.eye-btn:hover {
+  color: var(--text-primary);
+}
+
+label {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--text-muted);
+
+  background: transparent;
+  color: var(--text-primary);
+
+  transition: border-color 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--purple);
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+
+  background: var(--purple);
+  color: #ffffff;
+  font-weight: 600;
+
+  margin-top: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.switch {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+.switch a {
+  color: var(--purple);
+  text-decoration: none;
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\signup\signup.html
+============================================================
+<section class="auth-page">
+  <div class="auth-card">
+    <h1 class="auth-title">Create Account</h1>
+    <p class="auth-subtitle">
+      Start turning documents into intelligence
+    </p>
+
+    @if (errorMessage()) {
+    <div class="error-banner">
+      {{ errorMessage() }}
+    </div>
+    }
+
+    @if (successMessage()) {
+    <div class="success-banner">
+      {{ successMessage() }}
+    </div>
+    }
+
+    @if (!successMessage()) {
+    <form (ngSubmit)="signup()" autocomplete="off">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" name="signup-email" autocomplete="username" required
+          placeholder="you@example.com" />
+      </div>
+
+      <div class="field">
+        <label>Company</label>
+        <input type="text" [(ngModel)]="company" name="company" required placeholder="Company name" />
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="new-password"
+            autocomplete="new-password" required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+          <button type="button" class="eye-btn" (click)="togglePassword()" aria-label="Toggle password visibility">
+            @if (showPassword()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            }
+          </button>
+        </div>
+        <span class="field-hint">Min 8 chars, include uppercase, lowercase, digit & special char</span>
+      </div>
+
+      <div class="field">
+        <label>Confirm Password</label>
+        <div class="password-wrapper">
+          <input [type]="showConfirmPassword() ? 'text' : 'password'" [(ngModel)]="confirmPassword"
+            name="confirm-new-password" autocomplete="new-password" required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+          <button type="button" class="eye-btn" (click)="toggleConfirmPassword()"
+            aria-label="Toggle password visibility">
+            @if (showConfirmPassword()) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19">
+              </path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      <button class="auth-btn" type="submit" [disabled]="isLoading()">
+        {{ isLoading() ? 'Creating accountâ€¦' : 'Sign Up' }}
+      </button>
+    </form>
+    }
+
+    <p class="switch">
+      Already have an account?
+      <a routerLink="/login">Login</a>
+    </p>
+  </div>
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\signup\signup.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Signup } from './signup';
+
+describe('Signup', () => {
+  let component: Signup;
+  let fixture: ComponentFixture<Signup>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Signup]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Signup);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\auth\signup\signup.ts
+============================================================
+import { Component, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { Auth } from '../../../core/services/auth';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-signup',
+  standalone: true,
+  imports: [FormsModule, RouterLink],
+  templateUrl: './signup.html',
+  styleUrl: './signup.css',
+})
+export class Signup {
+  email = '';
+  password = '';
+  confirmPassword = '';
+  company = '';
+
+  errorMessage = signal('');
+  successMessage = signal('');
+  isLoading = signal(false);
+  showPassword = signal(false);
+  showConfirmPassword = signal(false);
+
+  togglePassword() {
+    this.showPassword.update(v => !v);
+  }
+
+  toggleConfirmPassword() {
+    this.showConfirmPassword.update(v => !v);
+  }
+
+  constructor(
+    private auth: Auth,
+    private router: Router
+  ) { }
+
+  signup() {
+    this.errorMessage.set('');
+    this.successMessage.set('');
+
+    if (!this.email || !this.password || !this.company) {
+      this.errorMessage.set('Email, password, and company name are required');
+      return;
+    }
+
+    if (this.password !== this.confirmPassword) {
+      this.errorMessage.set('Passwords do not match');
+      return;
+    }
+
+    // Password Complexity Checks
+    const hasLowercase = /[a-z]/.test(this.password);
+    const hasUppercase = /[A-Z]/.test(this.password);
+    const hasDigit = /\d/.test(this.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(this.password);
+
+    if (this.password.length < 8) {
+      this.errorMessage.set('Password must be at least 8 characters');
+      return;
+    }
+    if (!hasLowercase) {
+      this.errorMessage.set('Password must include at least one lowercase character');
+      return;
+    }
+    if (!hasUppercase) {
+      this.errorMessage.set('Password must include at least one uppercase character');
+      return;
+    }
+    if (!hasDigit) {
+      this.errorMessage.set('Password must include at least one number');
+      return;
+    }
+    if (!hasSpecial) {
+      this.errorMessage.set('Password must include at least one special character');
+      return;
+    }
+
+    this.isLoading.set(true);
+
+    this.auth.signup({
+      email: this.email,
+      password: this.password,
+      companyName: this.company
+    }).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.successMessage.set('Signup successful! Your account is pending approval. You will be able to login once an admin approves your account.');
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+
+        const msg = err.error?.message || err.error?.Message;
+        if (msg === "Prohibited to register contact admin") {
+          this.errorMessage.set(msg);
+        } else if (err.status === 400) {
+          this.errorMessage.set(msg || 'Invalid signup data. Please check your inputs.');
+        } else if (err.status === 429) {
+          this.errorMessage.set(msg || 'Too many signup attempts. Please try again later.');
+        } else {
+          this.errorMessage.set('An unexpected error occurred. Please try again.');
+        }
+      }
+    });
+  }
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\dashboard\dashboard.css
+============================================================
+/* Uses existing theme variables from styles.css:
+   --bg, --bg-elevated, --text-primary, --text-muted,
+   --gradient-primary, --glow-purple, --glow-cyan */
+
+.dashboard-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.dash-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 14px;
+}
+
+/* â”€â”€ Range Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.range-filters {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.range-btn {
+  padding: 7px 16px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.range-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.range-btn.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
+}
+
+/* â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 100px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(168, 85, 247, 0.15);
+  border-top-color: var(--glow-purple);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* â”€â”€ KPI Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 860px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  padding: 20px 22px;
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  animation: fadeUp 0.4s ease both;
+}
+
+.stat-card:nth-child(1) {
+  animation-delay: 0.04s;
+}
+
+.stat-card:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.stat-card:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.stat-card:nth-child(4) {
+  animation-delay: 0.16s;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(168, 85, 247, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card.accent {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(0, 229, 255, 0.06));
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.stat-value.gradient-text {
+  color: var(--text-primary);
+  font-size: 20px;
+}
+
+.stat-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* â”€â”€ Charts Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.4s ease 0.2s both;
+}
+
+@media (max-width: 768px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* â”€â”€ Panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.panel {
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  animation: fadeUp 0.4s ease 0.24s both;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.panel-header h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.panel-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.chart-host {
+  width: 100%;
+  min-height: 280px;
+}
+
+/* â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.table-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 40px 2.5fr 1.2fr 80px 120px 90px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover:not(.header) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.table-row.header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rank {
+  font-weight: 700;
+  color: var(--glow-purple);
+  font-size: 13px;
+}
+
+.product-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--glow-cyan);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  white-space: nowrap;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.growth-pos {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--glow-green);
+  background: rgba(74, 222, 128, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.growth-neg {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--glow-red);
+  background: rgba(255, 42, 42, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.empty-row {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\dashboard\dashboard.html
+============================================================
+<section class="dashboard-page">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div>
+      <h1 class="title">Analytics Dashboard</h1>
+      <p class="subtitle">Invoice analytics and product insights</p>
+    </div>
+    <div class="range-filters">
+      <button class="range-btn" [class.active]="selectedRange() === '30d'" (click)="setRange('30d')">30D</button>
+      <button class="range-btn" [class.active]="selectedRange() === '90d'" (click)="setRange('90d')">90D</button>
+      <button class="range-btn" [class.active]="selectedRange() === '12m'" (click)="setRange('12m')">12M</button>
+      <button class="range-btn" [class.active]="selectedRange() === 'all'" (click)="setRange('all')">All Time</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <span>Loading analyticsâ€¦</span>
+  </div>
+  } @else {
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="stat-card">
+      <div class="stat-label">
+        Total Revenue
+        <span class="info-icon" title="Total pre-discount amount from all processed invoices">â“˜</span>
+      </div>
+      <div class="stat-value">{{ totalRevenue() | currency:'USD':'symbol':'1.0-0' }}</div>
+      <div class="stat-sub">Across all categories</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Invoices</div>
+      <div class="stat-value">{{ totalInvoices() }}</div>
+      <div class="stat-sub">Processed documents</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg. Order Value</div>
+      <div class="stat-value">{{ avgOrderValue() | currency:'USD':'symbol':'1.0-0' }}</div>
+      <div class="stat-sub">Per invoice</div>
+    </div>
+    <div class="stat-card accent">
+      <div class="stat-label">Top Category</div>
+      <div class="stat-value gradient-text">{{ topCategory() }}</div>
+      <div class="stat-sub">Highest revenue</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Revenue Split</h2>
+        <span class="panel-hint">by category</span>
+      </div>
+      <div #donutContainer class="chart-host"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Invoice Volume</h2>
+        <span class="panel-hint">by category</span>
+      </div>
+      <div #barContainer class="chart-host"></div>
+    </div>
+  </div>
+
+  <!-- Trending Products -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Trending Products</h2>
+      <span class="panel-hint">Top 5 by revenue</span>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-row header">
+        <span class="align-center">#</span>
+        <span class="align-center">Product</span>
+        <span class="align-center">Category</span>
+        <span class="align-center">Invoices</span>
+        <span class="align-center">Revenue</span>
+        <span class="align-center">
+          Growth
+          <span class="info-icon" title="Growth rate compared to previous period of same duration">â“˜</span>
+        </span>
+      </div>
+
+      @for (p of trendingProducts(); track p.productId) {
+      <div class="table-row">
+        <span class="rank align-center">{{ p.rank }}</span>
+        <span class="product-name align-center">{{ p.productName }}</span>
+        <span class="cat-tag align-center">{{ p.category }}</span>
+        <span class="align-center muted">{{ p.invoiceCount }}</span>
+        <span class="align-center font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
+        <span class="align-center" [ngClass]="growthClass(p.growthRate)">{{ growthLabel(p.growthRate) }}</span>
+      </div>
+      }
+
+      @empty {
+      <div class="empty-row align-center">No trending data available</div>
+      }
+    </div>
+  </div>
+
+  }
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\dashboard\dashboard.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Dashboard } from './dashboard';
+
+describe('Dashboard', () => {
+  let component: Dashboard;
+  let fixture: ComponentFixture<Dashboard>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Dashboard]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Dashboard);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\dashboard\dashboard.ts
+============================================================
+import {
+  Component, OnInit, OnDestroy, ElementRef, ViewChild,
+  inject, signal, effect, computed
+} from '@angular/core';
+import { CommonModule, CurrencyPipe, NgClass } from '@angular/common';
+import { AnalyticsService, CategorySales, ProductTrend } from '../../core/services/analytics.service';
+import { forkJoin } from 'rxjs';
+
+const getD3 = (): any => (window as any)['d3'];
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [CommonModule, CurrencyPipe, NgClass],
+  templateUrl: './dashboard.html',
+  styleUrls: ['./dashboard.css']
+})
+export class Dashboard implements OnInit, OnDestroy {
+
+  private analyticsService = inject(AnalyticsService);
+
+  categorySales = signal<CategorySales[]>([]);
+  trendingProducts = signal<ProductTrend[]>([]);
+  isLoading = signal(true);
+  selectedRange = signal<'30d' | '90d' | '12m' | 'all'>('all');
+
+  totalRevenue = computed(() =>
+    this.categorySales().reduce((s, c) => s + (c.totalRevenue || 0), 0)
+  );
+  totalInvoices = computed(() =>
+    this.categorySales().reduce((s, c) => s + (c.invoiceCount || 0), 0)
+  );
+  avgOrderValue = computed(() => {
+    const inv = this.totalInvoices();
+    return inv > 0 ? this.totalRevenue() / inv : 0;
+  });
+  topCategory = computed(() => {
+    const sales = this.categorySales();
+    return sales.length > 0
+      ? [...sales].sort((a, b) => b.totalRevenue - a.totalRevenue)[0].category
+      : 'N/A';
+  });
+
+  @ViewChild('donutContainer') donutContainer!: ElementRef;
+  @ViewChild('barContainer') barContainer!: ElementRef;
+
+  private resizeListener = () => {
+    if (!this.isLoading() && this.categorySales().length > 0) {
+      this.renderDonut(this.categorySales());
+      this.renderBar(this.categorySales());
+    }
+  };
+
+  constructor() {
+    effect(() => {
+      const data = this.categorySales();
+      if (data.length > 0 && !this.isLoading()) {
+        setTimeout(() => {
+          this.renderDonut(data);
+          this.renderBar(data);
+        }, 80);
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadData();
+    window.addEventListener('resize', this.resizeListener);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('resize', this.resizeListener);
+    getD3()?.selectAll('.dash-tooltip').remove();
+  }
+
+  setRange(range: '30d' | '90d' | '12m' | 'all'): void {
+    this.selectedRange.set(range);
+    this.loadData();
+  }
+
+  loadData(): void {
+    this.isLoading.set(true);
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    const startDate = new Date();
+    switch (this.selectedRange()) {
+      case '30d': startDate.setDate(endDate.getDate() - 30); break;
+      case '90d': startDate.setDate(endDate.getDate() - 90); break;
+      case '12m': startDate.setFullYear(endDate.getFullYear() - 1); break;
+      case 'all': startDate.setFullYear(2000); break;
+    }
+    startDate.setHours(0, 0, 0, 0);
+
+    forkJoin({
+      categories: this.analyticsService.getCategorySales(startDate, endDate),
+      trending: this.analyticsService.getTrendingProducts(startDate, endDate, 5)
+    }).subscribe({
+      next: (res: { categories: CategorySales[]; trending: ProductTrend[] }) => {
+        this.categorySales.set(res.categories || []);
+        this.trendingProducts.set(res.trending || []);
+        this.isLoading.set(false);
+      },
+      error: (err: unknown) => {
+        console.error('Dashboard load failed:', err);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  growthClass(rate: number): string {
+    return rate >= 0 ? 'growth-pos' : 'growth-neg';
+  }
+
+  growthLabel(rate: number): string {
+    const pct = (Math.abs(rate) * 100).toFixed(1);
+    return rate >= 0 ? `+${pct}%` : `-${pct}%`;
+  }
+
+  renderDonut(data: CategorySales[]): void {
+    if (!this.donutContainer) return;
+    const d3: any = getD3();
+    if (!d3) return;
+    const el = this.donutContainer.nativeElement;
+    d3.select(el).selectAll('*').remove();
+
+    const W: number = (el.offsetWidth as number) || 320;
+    const H = 300;
+    const R = Math.min(W, H) / 2 - 24;
+
+    const svgRoot = d3.select(el).append('svg').attr('width', W).attr('height', H);
+    const defs = svgRoot.append('defs');
+    const svg = svgRoot.append('g').attr('transform', `translate(${W / 2},${H / 2})`);
+
+    const palette = ['#a855f7', '#00e5ff', '#4ade80', '#fbbf24', '#f472b6', '#60a5fa'];
+
+    palette.forEach((c: string, i: number) => {
+      const g = defs.append('radialGradient').attr('id', `rg${i}`).attr('cx', '40%').attr('cy', '40%');
+      g.append('stop').attr('offset', '0%').attr('stop-color', c).attr('stop-opacity', '1');
+      g.append('stop').attr('offset', '100%').attr('stop-color', c).attr('stop-opacity', '0.65');
+    });
+
+    const color = d3.scaleOrdinal()
+      .domain(data.map((d: CategorySales) => d.category))
+      .range(palette);
+
+    const makeArc = (inner: number, outer: number) =>
+      d3.arc().innerRadius(inner).outerRadius(outer).cornerRadius(5).padAngle(0.028);
+    const arc = makeArc(R * 0.54, R);
+    const arcH = makeArc(R * 0.54, R + 9);
+
+    const pie = d3.pie().value((d: CategorySales) => d.totalRevenue).sort(null);
+
+    d3.selectAll('.dash-tooltip').remove();
+    const tip = d3.select('body').append('div').attr('class', 'dash-tooltip')
+      .style('position', 'fixed').style('pointer-events', 'none')
+      .style('background', 'var(--bg-elevated)').style('backdrop-filter', 'blur(16px)')
+      .style('color', 'var(--text-primary)')
+      .style('border', '1px solid rgba(168,85,247,0.35)')
+      .style('border-radius', '12px').style('padding', '10px 14px')
+      .style('font-size', '13px').style('line-height', '1.6')
+      .style('opacity', '0').style('transition', 'opacity 0.15s').style('z-index', '9999')
+      .style('box-shadow', '0 8px 32px rgba(0,0,0,0.35)');
+
+    svg.selectAll('path').data(pie(data)).enter().append('path')
+      .attr('d', (d: any) => arc(d))
+      .attr('fill', (_d: any, i: number) => `url(#rg${i % palette.length})`)
+      .style('opacity', 0)
+      .on('mouseover', (event: any, d: any) => {
+        d3.select(event.currentTarget).transition().duration(150).attr('d', (dd: any) => arcH(dd));
+        const pct = this.totalRevenue() > 0
+          ? ((d.data.totalRevenue / this.totalRevenue()) * 100).toFixed(1) : '0';
+        tip.style('opacity', '1').html(
+          `<div style="font-weight:600;color:var(--glow-purple)">${d.data.category}</div>` +
+          `<div>$${(d.data.totalRevenue as number).toLocaleString()}</div>` +
+          `<div style="color:var(--text-muted)">${pct}% of total</div>`
+        );
+      })
+      .on('mousemove', (event: any) => {
+        tip.style('left', `${event.clientX + 16}px`).style('top', `${event.clientY - 44}px`);
+      })
+      .on('mouseout', (event: any) => {
+        d3.select(event.currentTarget).transition().duration(150).attr('d', (dd: any) => arc(dd));
+        tip.style('opacity', '0');
+      })
+      .transition().duration(550).delay((_d: any, i: number) => i * 70).style('opacity', 1);
+
+    // Center text
+    svg.append('text').attr('text-anchor', 'middle').attr('dy', '-0.35em')
+      .style('fill', 'var(--text-muted)').style('font-size', '11px').style('letter-spacing', '1px')
+      .text('TOTAL');
+    svg.append('text').attr('text-anchor', 'middle').attr('dy', '1.1em')
+      .style('fill', 'var(--text-primary)').style('font-size', '22px').style('font-weight', '700')
+      .text(`$${(this.totalRevenue() / 1000).toFixed(1)}k`);
+
+    // Legend
+    const lg = svg.append('g').attr('transform', `translate(${-W / 2 + 10}, ${R + 14})`);
+    data.forEach((d: CategorySales, i: number) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const lx = col * (W / 2 - 8), ly = row * 20;
+      lg.append('circle').attr('cx', lx + 5).attr('cy', ly + 5).attr('r', 5)
+        .style('fill', palette[i % palette.length]);
+      lg.append('text').attr('x', lx + 14).attr('y', ly + 9)
+        .style('fill', 'var(--text-muted)').style('font-size', '11px')
+        .text(d.category.length > 18 ? d.category.slice(0, 17) + 'â€¦' : d.category);
+    });
+  }
+
+  renderBar(data: CategorySales[]): void {
+    if (!this.barContainer) return;
+    const d3: any = getD3();
+    if (!d3) return;
+    const el = this.barContainer.nativeElement;
+    d3.select(el).selectAll('*').remove();
+
+    const margin = { top: 16, right: 16, bottom: 56, left: 50 };
+    const W = ((el.offsetWidth as number) || 480) - margin.left - margin.right;
+    const H = 280 - margin.top - margin.bottom;
+
+    const svgRoot = d3.select(el).append('svg')
+      .attr('width', W + margin.left + margin.right)
+      .attr('height', H + margin.top + margin.bottom);
+    const defs = svgRoot.append('defs');
+    const svg = svgRoot.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Gradient for bars
+    const bg = defs.append('linearGradient').attr('id', 'barG').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
+    bg.append('stop').attr('offset', '0%').attr('stop-color', '#a855f7');
+    bg.append('stop').attr('offset', '100%').attr('stop-color', '#00e5ff').attr('stop-opacity', '0.75');
+
+    const bgh = defs.append('linearGradient').attr('id', 'barGH').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
+    bgh.append('stop').attr('offset', '0%').attr('stop-color', '#c084fc');
+    bgh.append('stop').attr('offset', '100%').attr('stop-color', '#38bdf8').attr('stop-opacity', '0.9');
+
+    const x = d3.scaleBand().range([0, W]).padding(0.38)
+      .domain(data.map((d: CategorySales) => d.category));
+    const maxVal: number = data.reduce((m: number, d: CategorySales) => Math.max(m, d.invoiceCount), 0);
+    const y = d3.scaleLinear().range([H, 0]).domain([0, (maxVal || 1) * 1.2]);
+
+    // Grid
+    const gg = svg.append('g');
+    d3.axisLeft(y).tickSize(-W).tickFormat(() => '')(gg);
+    gg.selectAll('line').style('stroke', 'rgba(255,255,255,0.05)').style('stroke-dasharray', '4,4');
+    gg.select('.domain').remove();
+    gg.selectAll('text').remove();
+
+    // Tooltip (reuse if exists)
+    if (d3.selectAll('.dash-tooltip').empty()) {
+      d3.select('body').append('div').attr('class', 'dash-tooltip')
+        .style('position', 'fixed').style('pointer-events', 'none')
+        .style('background', 'var(--bg-elevated)').style('backdrop-filter', 'blur(16px)')
+        .style('color', 'var(--text-primary)')
+        .style('border', '1px solid rgba(168,85,247,0.35)')
+        .style('border-radius', '12px').style('padding', '10px 14px')
+        .style('font-size', '13px').style('line-height', '1.6')
+        .style('opacity', '0').style('transition', 'opacity 0.15s').style('z-index', '9999')
+        .style('box-shadow', '0 8px 32px rgba(0,0,0,0.35)');
+    }
+    const tip = d3.select('.dash-tooltip');
+
+    // Bars
+    svg.selectAll('.bar').data(data).enter().append('rect')
+      .attr('class', 'bar')
+      .attr('x', (d: CategorySales) => x(d.category) as number)
+      .attr('width', x.bandwidth())
+      .attr('y', H).attr('height', 0).attr('rx', 6)
+      .style('fill', 'url(#barG)').style('cursor', 'pointer')
+      .on('mouseover', (event: any, d: any) => {
+        d3.select(event.currentTarget).style('fill', 'url(#barGH)');
+        tip.style('opacity', '1').html(
+          `<div style="font-weight:600;color:var(--glow-purple)">${d.category}</div>` +
+          `<div>${d.invoiceCount} invoices</div>` +
+          `<div style="color:var(--text-muted)">$${(d.totalRevenue as number).toLocaleString()}</div>`
+        );
+      })
+      .on('mousemove', (event: any) => {
+        tip.style('left', `${event.clientX + 16}px`).style('top', `${event.clientY - 44}px`);
+      })
+      .on('mouseout', (event: any) => {
+        d3.select(event.currentTarget).style('fill', 'url(#barG)');
+        tip.style('opacity', '0');
+      })
+      .transition().duration(650).ease(d3.easeCubicOut).delay((_d: any, i: number) => i * 55)
+      .attr('y', (d: CategorySales) => y(d.invoiceCount) as number)
+      .attr('height', (d: CategorySales) => H - (y(d.invoiceCount) as number));
+
+    // Value labels
+    svg.selectAll('.blabel').data(data).enter().append('text')
+      .attr('class', 'blabel')
+      .attr('x', (d: CategorySales) => (x(d.category) as number) + x.bandwidth() / 2)
+      .attr('y', (d: CategorySales) => (y(d.invoiceCount) as number) - 7)
+      .attr('text-anchor', 'middle')
+      .style('fill', 'var(--text-muted)').style('font-size', '12px').style('opacity', 0)
+      .text((d: CategorySales) => String(d.invoiceCount))
+      .transition().delay(700).duration(250).style('opacity', 1);
+
+    // X axis
+    const xA = svg.append('g').attr('transform', `translate(0,${H})`).call(d3.axisBottom(x).tickSize(0));
+    xA.select('.domain').style('stroke', 'rgba(255,255,255,0.1)');
+    xA.selectAll('text').style('fill', 'var(--text-muted)').style('font-size', '11px').attr('dy', '1.4em')
+      .each(function (this: any) {
+        const s = d3.select(this), t: string = s.text();
+        if (t.length > 14) s.text(t.slice(0, 13) + 'â€¦');
+      });
+
+    // Y axis
+    const yA = svg.append('g').call(d3.axisLeft(y).ticks(4));
+    yA.select('.domain').remove();
+    yA.selectAll('text').style('fill', 'var(--text-muted)').style('font-size', '11px');
+    yA.selectAll('.tick line').style('stroke', 'rgba(255,255,255,0.07)');
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\invoices\invoices.css
+============================================================
+/* â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+/* â”€â”€â”€ Collapsible Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.section-panel {
+    border-radius: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.section-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 22px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: left;
+    font-family: inherit;
+}
+
+.section-toggle:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.toggle-arrow {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.toggle-arrow.open {
+    transform: rotate(90deg);
+}
+
+.section-title-text {
+    flex: 1;
+}
+
+.section-count {
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(168, 85, 247, 0.12);
+    color: var(--glow-purple);
+}
+
+.section-count.danger {
+    background: rgba(255, 42, 42, 0.1);
+    color: var(--glow-red);
+}
+
+.section-body {
+    padding: 0 22px 22px;
+}
+
+/* â”€â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.table-container {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+}
+
+tbody td {
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr.clickable {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+tbody tr.clickable:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.expand-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.expand-icon.open {
+    transform: rotate(90deg);
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+.align-right {
+    text-align: right;
+}
+
+.align-center {
+    text-align: center !important;
+}
+
+.muted {
+    color: var(--text-muted);
+}
+
+.file-name-cell {
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reason-cell {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* â”€â”€â”€ Line Items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.line-items-row td {
+    padding: 0 !important;
+    border-bottom: none !important;
+}
+
+.line-items-panel {
+    margin: 0 16px 12px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(168, 85, 247, 0.04);
+    border: 1px solid rgba(168, 85, 247, 0.1);
+}
+
+.line-items-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.meta-tag {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.meta-tag.discount {
+    color: var(--glow-green);
+    background: rgba(74, 222, 128, 0.1);
+}
+
+.inner-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.inner-table thead th {
+    padding: 8px 12px;
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.inner-table tbody td {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.inner-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* â”€â”€â”€ Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--glow-cyan);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+.type-badge {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.type-badge.security {
+    background: rgba(255, 42, 42, 0.1);
+    color: var(--glow-red);
+    border: 1px solid rgba(255, 42, 42, 0.2);
+}
+
+.type-badge.extraction {
+    background: rgba(255, 190, 90, 0.12);
+    color: var(--glow-amber);
+    border: 1px solid rgba(255, 190, 90, 0.2);
+}
+
+/* â”€â”€â”€ Action Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.action-btn {
+    padding: 5px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--glow-purple);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: rgba(168, 85, 247, 0.18);
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.link-btn {
+    background: var(--glow-cyan);
+    color: #000;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.link-btn:hover {
+    opacity: 0.5;
+}
+
+.link-btn-text {
+    background: transparent;
+    border: none;
+    color: var(--glow-cyan);
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+    text-decoration: underline;
+    text-align: left;
+}
+
+.link-btn-text:hover {
+    color: var(--glow-purple);
+}
+
+/* â”€â”€â”€ Pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.page-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.empty-cell {
+    text-align: center;
+    padding: 32px 16px !important;
+    color: var(--text-muted);
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\invoices\invoices.html
+============================================================
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Invoices</h1>
+      <p class="page-subtitle">Manage and review extracted invoices</p>
+    </div>
+  </div>
+
+  <!-- VALID INVOICES SECTION -->
+  <div class="section-panel">
+    <button class="section-toggle" (click)="toggleValid()">
+      <span class="toggle-arrow" [class.open]="validOpen()">â–¶</span>
+      <span class="section-title-text">Valid Invoices</span>
+      <span class="section-count">{{ validTotal() }}</span>
+    </button>
+
+    @if (validOpen()) {
+    <div class="section-body">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="align-center"></th>
+                @if (isAdmin) { <th class="align-center">ID</th> }
+                <th class="align-center">Invoice #</th>
+                <th class="align-center">Date</th>
+                <th class="align-center">File</th>
+                @if (isAdmin) { <th class="align-center">Vendor</th> }
+                @if (isAdmin) { <th class="align-center">Vendor ID</th> }
+                <th class="align-center">Amount</th>
+                <th class="align-center">Currency</th>
+                <th class="align-center">Shipping</th>
+                <th class="align-center">Discount</th>
+                @if (isAdmin) { <th class="align-center">Discount %</th> }
+                <th class="align-center">Lines</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of validInvoices(); track inv.id) {
+              <tr class="clickable" (click)="toggleExpand(inv.id)">
+                <td class="align-center">
+                  <span class="expand-icon" [class.open]="expandedInvoiceId() === inv.id">â–¶</span>
+                </td>
+                @if (isAdmin) { <td class="mono muted align-center" [title]="inv.id">{{ inv.id }}</td> }
+                <td class="font-medium align-center" [title]="inv.invoiceNumber">
+                  @if (inv.invoiceNumber) { {{ inv.invoiceNumber }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">No invoice #</span> }
+                </td>
+                <td class="muted align-center">
+                  @if (inv.invoiceDate) { {{ inv.invoiceDate | date:'mediumDate' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">N/A</span> }
+                </td>
+                <td class="align-center">
+                  <button class="link-btn" (click)="viewInvoice(inv.driveFileId); $event.stopPropagation()">
+                    View
+                  </button>
+                </td>
+                @if (isAdmin) {
+                <td class="align-center" [title]="inv.vendorName">
+                  @if (inv.vendorName) { {{ inv.vendorName }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="mono muted align-center" [title]="inv.uploadedByVendorId">
+                  @if (inv.uploadedByVendorId) { {{ inv.uploadedByVendorId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                }
+                <td class="align-center font-bold">
+                  @if (inv.totalAmount != null) { {{ inv.totalAmount | currency:(inv.currency || 'USD'):'symbol':'1.2-2'
+                  }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="muted align-center">
+                  @if (inv.currency) { {{ inv.currency }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="align-center muted">
+                  @if (inv.shippingCost != null) { {{ inv.shippingCost | currency:(inv.currency ||
+                  'USD'):'symbol':'1.2-2' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="align-center muted">
+                  @if (inv.discount?.amount != null) { {{ inv.discount?.amount | currency:(inv.currency ||
+                  'USD'):'symbol':'1.2-2' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                @if (isAdmin) {
+                <td class="align-center muted">
+                  @if (inv.discount?.percentage != null) { {{ inv.discount?.percentage }}% }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                }
+                <td class="align-center muted">
+                  @if (inv.lineItems?.length) { {{ inv.lineItems.length }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+              </tr>
+
+              <!-- Expanded line items -->
+              @if (expandedInvoiceId() === inv.id && inv.lineItems?.length) {
+              <tr class="line-items-row">
+                <td [attr.colspan]="isAdmin ? 13 : 9">
+                  <div class="line-items-panel">
+                    <div class="line-items-header">
+                      <span>Line Items</span>
+                      @if (inv.shippingCost != null) { <span class="meta-tag">Shipping: {{ inv.shippingCost |
+                        currency:(inv.currency || 'USD'):'symbol':'1.2-2' }}</span> }
+                      @if (inv.discount?.amount != null) { <span class="meta-tag discount">Discount: -{{
+                        inv.discount?.amount | currency:(inv.currency || 'USD'):'symbol':'1.2-2' }}</span> }
+                    </div>
+                    <table class="inner-table">
+                      <thead>
+                        <tr>
+                          @if (isAdmin) { <th class="align-center">Product ID</th> }
+                          <th class="align-center">Product</th>
+                          <th class="align-center">Category</th>
+                          <th class="align-center">Qty</th>
+                          <th class="align-center">Unit Price</th>
+                          <th class="align-center">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (line of inv.lineItems; track line.id) {
+                        <tr>
+                          @if (isAdmin) {
+                          <td class="mono muted align-center">
+                            @if (line.productId) { {{ line.productId }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          }
+                          <td class="font-medium align-center">
+                            @if (line.productName) { {{ line.productName }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center">
+                            @if (line.category) { <span class="tag">{{ line.category }}</span> }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center muted">
+                            @if (line.quantity != null) { {{ line.quantity }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center">
+                            @if (line.unitRate != null) { {{ line.unitRate | currency:(inv.currency ||
+                            'USD'):'symbol':'1.2-2' }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                          <td class="align-center font-bold">
+                            @if (line.amount != null) { {{ line.amount | currency:(inv.currency ||
+                            'USD'):'symbol':'1.2-2' }} }
+                            @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                          </td>
+                        </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+              }
+              }
+              @if (!validInvoices().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 13 : 9" class="empty-cell">No valid invoices found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button class="page-btn" (click)="validPrevPage()" [disabled]="validPage() <= 1">Prev</button>
+          <span class="page-info">Page {{ validPage() }} / {{ validTotalPages() }}</span>
+          <button class="page-btn" (click)="validNextPage()" [disabled]="validPage() >= validTotalPages()">Next</button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- INVALID INVOICES SECTION -->
+  <div class="section-panel">
+    <button class="section-toggle" (click)="toggleInvalid()">
+      <span class="toggle-arrow" [class.open]="invalidOpen()">â–¶</span>
+      <span class="section-title-text">Invalid Invoices</span>
+      <span class="section-count danger">{{ invalidTotal() }}</span>
+    </button>
+
+    @if (invalidOpen()) {
+    <div class="section-body">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table class="table">
+            <thead>
+              <tr>
+                @if (isAdmin) { <th class="align-center">Invalid ID</th> }
+                <th class="align-center">File</th>
+                <th class="align-center">Type</th>
+                <th class="align-center">Reason</th>
+                <th class="align-center">Date</th>
+                @if (isAdmin) {
+                <th class="align-center">File ID</th>
+                <th class="align-center">Vendor ID</th>
+                <th class="align-center">Job ID</th>
+                <th class="align-center">Actions</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (inv of invalidInvoices(); track inv.id) {
+              <tr>
+                @if (isAdmin) { <td class="mono muted align-center" [title]="inv.id">{{ inv.id }}</td> }
+                <td class="font-medium file-name-cell align-center" [title]="inv.fileName || ''">
+                  @if (inv.fileName) {
+                  <button class="link-btn-text" (click)="viewInvoice(inv.fileId)">
+                    {{ inv.fileName }}
+                  </button>
+                  }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">N/A</span> }
+                </td>
+                <td class="align-center">
+                  <span class="type-badge" [class.security]="inv.type === 'SecurityViolation'"
+                    [class.extraction]="inv.type === 'ExtractionFailure'">
+                    @if (inv.type) { {{ typeLabel(inv.type) }} }
+                    @else { - }
+                  </span>
+                </td>
+                <td class="muted reason-cell align-center" [title]="prettifyReason(inv.reason)">
+                  @if (inv.reason) { {{ truncateReason(inv.reason) }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="muted align-center">
+                  @if (inv.createdAt) { {{ inv.createdAt | date:'short' }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                @if (isAdmin) {
+                <td class="mono muted align-center" [title]="inv.fileId || ''">
+                  @if (inv.fileId) { {{ inv.fileId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="mono muted align-center" [title]="inv.vendorId || ''">
+                  @if (inv.vendorId) { {{ inv.vendorId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="mono muted align-center" [title]="inv.jobId || ''">
+                  @if (inv.jobId) { {{ inv.jobId }} }
+                  @else { <span class="muted" style="font-weight: normal; font-size: 0.9em;">-</span> }
+                </td>
+                <td class="align-center">
+                  @if (inv.jobId) {
+                  <button class="action-btn" (click)="requeueJob(inv.jobId!)">Requeue</button>
+                  } @else {
+                  <span class="muted" style="font-size: 0.9em;">-</span>
+                  }
+                </td>
+                }
+              </tr>
+              }
+              @if (!invalidInvoices().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 9 : 4" class="empty-cell">No invalid invoices</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button class="page-btn" (click)="invalidPrevPage()" [disabled]="invalidPage() <= 1">Prev</button>
+          <span class="page-info">Page {{ invalidPage() }} / {{ invalidTotalPages() }}</span>
+          <button class="page-btn" (click)="invalidNextPage()"
+            [disabled]="invalidPage() >= invalidTotalPages()">Next</button>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\invoices\invoices.ts
+============================================================
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { ApiService, InvoiceDto, InvoicesResponse, InvalidInvoice, InvalidInvoicesResponse } from '../../core/services/api.service';
+import { Auth } from '../../core/services/auth';
+
+@Component({
+  selector: 'app-invoices',
+  standalone: true,
+  imports: [CurrencyPipe, DatePipe],
+  templateUrl: './invoices.html',
+  styleUrls: ['./invoices.css']
+})
+export class Invoices implements OnInit {
+  private api = inject(ApiService);
+  private auth = inject(Auth);
+
+  get isAdmin() {
+    return typeof (this.auth as any).isAdmin === 'function'
+      ? (this.auth as any).isAdmin()
+      : !!(this.auth as any).isAdmin;
+  }
+
+  validInvoices = signal<InvoiceDto[]>([]);
+  validPage = signal(1);
+  validTotalPages = signal(1);
+  validTotal = signal(0);
+  validOpen = signal(true);
+
+  invalidInvoices = signal<InvalidInvoice[]>([]);
+  invalidPage = signal(1);
+  invalidTotalPages = signal(1);
+  invalidTotal = signal(0);
+  invalidOpen = signal(false);
+
+  expandedInvoiceId = signal<string | null>(null);
+  isLoading = signal(false);
+
+  ngOnInit(): void {
+    this.loadValid();
+    this.loadInvalid();
+  }
+
+  loadValid(): void {
+    this.isLoading.set(true);
+    this.api.getInvoices(this.validPage(), 20).subscribe({
+      next: (res: InvoicesResponse) => {
+        this.validInvoices.set(res.invoices ?? []);
+        this.validTotalPages.set(res.totalPages ?? 1);
+        this.validTotal.set(res.total ?? 0);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed loading invoices', err);
+        this.validInvoices.set([]);
+        this.validTotalPages.set(1);
+        this.validTotal.set(0);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  loadInvalid(): void {
+    this.api.getInvalidInvoices(this.invalidPage(), 20).subscribe({
+      next: (res: InvalidInvoicesResponse) => {
+        this.invalidInvoices.set(res.data ?? []);
+        this.invalidTotalPages.set(res.totalPages ?? 1);
+        this.invalidTotal.set(res.totalCount ?? 0);
+      },
+      error: (err) => {
+        console.error('Failed loading invalid invoices', err);
+      }
+    });
+  }
+
+  toggleValid(): void {
+    this.validOpen.update(v => !v);
+  }
+
+  toggleInvalid(): void {
+    this.invalidOpen.update(v => !v);
+  }
+
+  toggleExpand(id: string): void {
+    this.expandedInvoiceId.update(cur => cur === id ? null : id);
+  }
+
+  validNextPage(): void {
+    if (this.validPage() < this.validTotalPages()) {
+      this.validPage.update(p => p + 1);
+      this.loadValid();
+    }
+  }
+
+  validPrevPage(): void {
+    if (this.validPage() > 1) {
+      this.validPage.update(p => p - 1);
+      this.loadValid();
+    }
+  }
+
+  invalidNextPage(): void {
+    if (this.invalidPage() < this.invalidTotalPages()) {
+      this.invalidPage.update(p => p + 1);
+      this.loadInvalid();
+    }
+  }
+
+  invalidPrevPage(): void {
+    if (this.invalidPage() > 1) {
+      this.invalidPage.update(p => p - 1);
+      this.loadInvalid();
+    }
+  }
+
+  requeueJob(jobId: string): void {
+    this.api.requeueInvalidInvoice(jobId).subscribe({
+      next: () => this.loadInvalid(),
+      error: (err) => console.error('Failed to requeue', err)
+    });
+  }
+
+  typeLabel(type: string): string {
+    return type === 'SecurityViolation' ? 'Security' : 'Extraction';
+  }
+
+  truncateReason(reason: string | null): string {
+    if (!reason) return '';
+    const display = this.prettifyReason(reason);
+    return display.length > 120 ? display.slice(0, 117) + '...' : display;
+  }
+
+  prettifyReason(reason: string | null): string {
+    if (!reason) return '';
+    try {
+      // If it's a JSON string, try to extract the 'message'
+      if (reason.trim().startsWith('{')) {
+        const parsed = JSON.parse(reason);
+        return parsed.message || parsed.error || reason;
+      }
+    } catch (e) {
+      // Not JSON or parse failed, return original
+    }
+    return reason;
+  }
+
+  viewInvoice(fileId: string | null | undefined): void {
+    if (!fileId) return;
+    window.open(`https://drive.google.com/file/d/${fileId}/view`, '_blank');
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\job-queue\job-queue.css
+============================================================
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+.section-panel {
+    border-radius: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.table-container {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+}
+
+tbody td {
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.align-right {
+    text-align: right;
+}
+
+.muted {
+    color: var(--text-muted);
+}
+
+.mono {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.error-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #ff5a5a;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background: rgba(255, 190, 90, 0.12);
+    color: var(--glow-amber);
+    border: 1px solid rgba(255, 190, 90, 0.2);
+}
+
+.status-badge.processing {
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--glow-cyan);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+.status-badge.completed {
+    background: rgba(74, 222, 128, 0.1);
+    color: var(--glow-green);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.status-badge.failed,
+.status-badge.invalid {
+    background: rgba(255, 42, 42, 0.1);
+    color: var(--glow-red);
+    border: 1px solid rgba(255, 42, 42, 0.2);
+}
+
+.action-btn {
+    padding: 5px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    background: rgba(168, 85, 247, 0.08);
+    color: var(--glow-purple);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: rgba(168, 85, 247, 0.18);
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.action-btn.danger {
+    color: #ff5a5a;
+    border-color: rgba(255, 90, 90, 0.25);
+    background: rgba(255, 90, 90, 0.08);
+}
+
+.action-btn.danger:hover {
+    background: rgba(255, 90, 90, 0.18);
+    border-color: rgba(255, 90, 90, 0.4);
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+    padding-bottom: 22px;
+}
+
+.page-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.empty-cell {
+    text-align: center;
+    padding: 32px 16px !important;
+    color: var(--text-muted);
+}
+
+/* Closable Details Panel Styles */
+.details-panel {
+    margin-top: 20px;
+    border-radius: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+
+.details-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 8px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.detail-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.align-center {
+    text-align: center;
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\job-queue\job-queue.html
+============================================================
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Job Queue</h1>
+      <p class="page-subtitle">Background processing tasks and status</p>
+    </div>
+    <div class="header-actions">
+      <button class="action-btn" (click)="refresh()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="section-panel">
+    <div class="section-body" style="padding-top: 22px;">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="align-center">ID</th>
+                <th class="align-center">Type</th>
+                <th class="align-center">Status</th>
+                <th class="align-center">Retries</th>
+                @if (isAdmin) { <th class="align-center">Locked By</th> }
+                @if (isAdmin) { <th class="align-center">Locked At</th> }
+                @if (isAdmin) { <th class="align-center">Next Retry</th> }
+                <th class="align-center">Created</th>
+                <th class="align-center">Updated</th>
+                <th class="align-center">Error</th>
+                @if (isAdmin) { <th class="align-center">Actions</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (job of jobs(); track job.id) {
+              <tr [class.selected]="selectedJob()?.id === job.id" (click)="selectedJob.set(job)">
+                <td class="mono muted align-center" [title]="job.id">...{{ job.id.slice(-8) }}</td>
+                <td class="mono muted align-center">{{ job.jobType }}</td>
+                <td class="align-center">
+                  <span class="status-badge" [class.pending]="job.status === 'PENDING'"
+                    [class.processing]="job.status === 'PROCESSING'" [class.failed]="job.status === 'FAILED'"
+                    [class.completed]="job.status === 'COMPLETED'" [class.invalid]="job.status === 'INVALID'">
+                    {{ job.status }}
+                  </span>
+                </td>
+                <td class="align-center">{{ job.retryCount }}</td>
+                @if (isAdmin) { <td class="mono muted align-center">{{ job.lockedBy || '-' }}</td> }
+                @if (isAdmin) { <td class="muted align-center">{{ job.lockedAt ? (job.lockedAt | date:'short') : '-' }}
+                </td> }
+                @if (isAdmin) { <td class="muted align-center">{{ job.nextRetryAt ? (job.nextRetryAt | date:'short') :
+                  '-' }}</td> }
+                <td class="muted align-center">{{ job.createdAt | date:'short' }}</td>
+                <td class="muted align-center">{{ job.updatedAt | date:'short' }}</td>
+                <td class="align-center error-cell" [title]="formatError(job.errorMessage)">
+                  {{ formatError(job.errorMessage) || '-' }}
+                </td>
+                @if (isAdmin) {
+                <td class="align-center">
+                  <button class="action-btn" style="margin-right: 8px;"
+                    (click)="selectedJob.set(job); $event.stopPropagation()">View Details</button>
+                  @if (job.status === 'INVALID' || job.status === 'FAILED') {
+                  <button class="action-btn danger"
+                    (click)="requeueJob(job.id); $event.stopPropagation()">Requeue</button>
+                  }
+                </td>
+                }
+              </tr>
+              }
+              @if (!jobs().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 11 : 7" class="empty-cell">No jobs found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button class="page-btn" (click)="prevPage()" [disabled]="page() === 1">Prev</button>
+        <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Closable Details View -->
+  @if (selectedJob()) {
+  <div class="details-panel">
+    <div class="details-header">
+      <h3>Job Details</h3>
+      <button class="close-btn" (click)="closeJob()" title="Close Details">âœ•</button>
+    </div>
+    <div class="details-body">
+      <div class="detail-grid">
+        @for (entry of getPayloadEntries(selectedJob()?.payloadJson); track entry.key) {
+        <div class="detail-item">
+          <span class="detail-label">{{ entry.key }}</span>
+          <span class="detail-value mono">{{ entry.value }}</span>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+  }
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\job-queue\job-queue.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { JobQueue } from './job-queue';
+
+describe('JobQueue', () => {
+  let component: JobQueue;
+  let fixture: ComponentFixture<JobQueue>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [JobQueue]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(JobQueue);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\job-queue\job-queue.ts
+============================================================
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ApiService, JobQueueItem, JobStatus } from '../../core/services/api.service';
+import { Auth } from '../../core/services/auth';
+
+@Component({
+  selector: 'app-job-queue',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './job-queue.html',
+  styleUrls: ['./job-queue.css']
+})
+export class JobQueue implements OnInit {
+  private api = inject(ApiService);
+  public auth = inject(Auth);
+  get isAdmin() { return this.auth.isAdmin; }
+
+  jobs = signal<JobQueueItem[]>([]);
+  page = signal(1);
+  pageSize = 50;
+  total = signal(0);
+
+  // Computed signal for total pages
+  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize)));
+
+  selectedJob = signal<JobQueueItem | null>(null);
+  statusFilter = signal<JobStatus | null>(null);
+
+  ngOnInit(): void {
+    this.loadJobs();
+  }
+
+  loadJobs(): void {
+    const status = this.statusFilter() ?? undefined;
+    this.api.getJobs(this.page(), this.pageSize, status).subscribe({
+      next: (res) => {
+        this.jobs.set(res.jobs ?? []);
+        this.total.set(res.total ?? 0);
+        this.selectedJob.set(null);
+      },
+      error: (err) => {
+        console.error('Failed loading jobs', err);
+        this.jobs.set([]);
+        this.total.set(0);
+        this.selectedJob.set(null);
+      }
+    });
+  }
+
+  nextPage(): void {
+    if (this.page() < this.totalPages()) {
+      this.page.update(p => p + 1);
+      this.loadJobs();
+    }
+  }
+
+  prevPage(): void {
+    if (this.page() > 1) {
+      this.page.update(p => p - 1);
+      this.loadJobs();
+    }
+  }
+
+  formatError(err: any): string {
+    if (!err) return '';
+    if (typeof err === 'string') {
+      try {
+        if (err.trim().startsWith('{')) {
+          const parsed = JSON.parse(err);
+          return parsed.message || parsed.error || JSON.stringify(parsed);
+        }
+      } catch (e) { }
+      return err;
+    }
+    if (typeof err === 'object') {
+      return err.message || err.error || JSON.stringify(err);
+    }
+    return String(err);
+  }
+
+  getPayloadEntries(payload: any): any[] {
+    if (!payload) return [];
+    try {
+      const data = typeof payload === 'string' ? JSON.parse(payload) : payload;
+      return Object.entries(data).map(([key, value]) => ({
+        key: this.formatKey(key),
+        value: typeof value === 'object' ? JSON.stringify(value) : value
+      }));
+    } catch (e) {
+      return [{ key: 'Data', value: String(payload) }];
+    }
+  }
+
+  private formatKey(key: string): string {
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+  }
+
+  refresh(): void {
+    this.loadJobs();
+  }
+
+  viewJob(id: string): void {
+    this.api.getJobById(id).subscribe({
+      next: (res) => {
+        this.selectedJob.set(res);
+      },
+      error: (err) => {
+        console.error('Failed loading job', err);
+      }
+    });
+  }
+
+  closeJob(): void {
+    this.selectedJob.set(null);
+  }
+
+  requeueJob(id: string): void {
+    if (!this.isAdmin) return;
+    this.api.requeueJob(id).subscribe({
+      next: () => {
+        this.loadJobs();
+      },
+      error: (err) => {
+        console.error('Failed to requeue job', err);
+      }
+    });
+  }
+
+  setStatus(status: JobStatus | null): void {
+    this.statusFilter.set(status);
+    this.page.set(1);
+    this.loadJobs();
+  }
+
+  prettifyError(errorMessage: unknown): string {
+    if (errorMessage == null) return '';
+    const raw = typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage);
+    try {
+      const parsed = JSON.parse(raw);
+      const msg = parsed?.message ?? parsed?.error ?? raw;
+      return String(msg).length > 220 ? String(msg).slice(0, 217) + '...' : String(msg);
+    } catch {
+      return raw.length > 220 ? raw.slice(0, 217) + '...' : raw;
+    }
+  }
+
+  getPrettyJson(obj: any): string {
+    return JSON.stringify(obj, null, 2);
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\hero\hero.css
+============================================================
+.hero {
+  min-height: calc(100vh - 64px);
+  /* minus navbar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 64px 24px;
+}
+
+.hero-content {
+  max-width: 800px;
+  text-align: center;
+}
+
+.headline {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 32px;
+  color: var(--text-primary);
+}
+
+
+.subtext {
+  font-size: 18px;
+  color: var(--text-muted);
+  margin-bottom: 40px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* ============================= */
+/* BASE BUTTON */
+/* ============================= */
+
+.btn {
+  position: relative;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-size: 16px;
+  cursor: pointer;
+
+  border: 1px solid transparent;
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+
+/* ============================= */
+/* PRIMARY = PURPLE OUTLINE */
+/* ============================= */
+
+.primary {
+  background: transparent;
+  color: var(--glow-purple);
+
+  border: 1.5px solid var(--glow-purple);
+}
+
+/* hover glow */
+.primary:hover {
+  transform: translateY(-3px);
+
+  background: rgba(168, 85, 247, 0.08);
+
+  box-shadow:
+    0 0 18px rgba(168, 85, 247, 0.25),
+    inset 0 0 12px rgba(168, 85, 247, 0.08);
+}
+
+/* active press */
+.primary:active {
+  transform: translateY(-1px) scale(0.98);
+  box-shadow:
+    0 0 12px rgba(140, 120, 255, 0.3);
+}
+
+
+/* ============================= */
+/* SECONDARY */
+/* ============================= */
+
+.secondary {
+  background: transparent;
+  border: 1.5px solid var(--text-primary);
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
+}
+
+.secondary:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+/* ============================= */
+/* LIGHT SWEEP EFFECT */
+/* ============================= */
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+
+  background: linear-gradient(120deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.35),
+      transparent 70%);
+
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.primary:hover::after {
+  opacity: 0.3;
+}
+
+
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow orbs 
+.glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.glow-1 {
+  top: -120px;
+  left: -120px;
+  background: var(--glow-purple);
+}
+
+.glow-2 {
+  bottom: -140px;
+  right: -140px;
+  background: var(--glow-purple);
+}
+*/
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\hero\hero.html
+============================================================
+<section class="hero">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <div class="hero-content">
+    <h1 class="headline">
+      Automated Invoice Insights
+    </h1>
+
+    <p class="subtext">
+      Upload files. Extract insights.
+    </p>
+
+    <div class="actions">
+  <button class="btn primary" routerLink="/login">Login</button>
+  <button class="btn secondary" routerLink="/signup">SignUp</button>
+</div>
+
+  </div>
+</section>
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\hero\hero.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Hero } from './hero';
+
+describe('Hero', () => {
+  let component: Hero;
+  let fixture: ComponentFixture<Hero>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Hero]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Hero);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\hero\hero.ts
+============================================================
+import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+
+@Component({
+  selector: 'app-hero',
+  standalone: true,
+  imports: [RouterLink],
+  templateUrl: './hero.html',
+  styleUrl: './hero.css',
+})
+export class Hero {
+
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\landing.css
+============================================================
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\landing.html
+============================================================
+<app-hero></app-hero>
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\landing.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Landing } from './landing';
+
+describe('Landing', () => {
+  let component: Landing;
+  let fixture: ComponentFixture<Landing>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Landing]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Landing);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\landing\landing.ts
+============================================================
+import { Component } from '@angular/core';
+import { Hero } from './hero/hero';
+
+@Component({
+  selector: 'app-landing',
+  imports: [Hero],
+  templateUrl: './landing.html',
+  styleUrl: './landing.css',
+})
+export class Landing {
+
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\logs\logs.css
+============================================================
+/* â”€â”€â”€ Shared page styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+/* â”€â”€â”€ Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.filters {
+    display: flex;
+    gap: 6px;
+    background: var(--bg-elevated);
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.filter-btn {
+    padding: 7px 16px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.filter-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
+}
+
+/* â”€â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 100px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(168, 85, 247, 0.15);
+    border-top-color: var(--glow-purple);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* â”€â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.table-container {
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+thead th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+}
+
+tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr {
+    transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.mono {
+    font-family: ui-monospace, 'Cascadia Code', monospace;
+    font-size: 12px;
+}
+
+.muted {
+    color: var(--text-muted);
+}
+
+.file-name-cell {
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+/* â”€â”€â”€ Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.status-badge {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge.healthy {
+    background: rgba(74, 222, 128, 0.12);
+    color: var(--glow-green);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.status-badge.unhealthy {
+    background: rgba(255, 42, 42, 0.1);
+    color: var(--glow-red);
+    border: 1px solid rgba(255, 42, 42, 0.2);
+}
+
+.tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--glow-cyan);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+/* â”€â”€â”€ Pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.page-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.empty-cell {
+    text-align: center;
+    padding: 40px 16px !important;
+    color: var(--text-muted);
+}
+
+.align-center {
+    text-align: center !important;
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\logs\logs.html
+============================================================
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">File Change Logs</h1>
+      <p class="page-subtitle">Track file activities and security checks</p>
+    </div>
+  </div>
+
+  <div class="section-panel">
+    <div class="section-body" style="padding-top: 22px;">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                @if (isAdmin) { <th class="align-center">ID</th> }
+                <th class="align-center">File Name</th>
+                <th class="align-center">Size (Bytes)</th>
+                <th class="align-center">Security</th>
+                @if (isAdmin) { <th class="align-center">Fail Reason</th> }
+                @if (isAdmin) { <th class="align-center">File ID</th> }
+                <th class="align-center">Change Type</th>
+                <th class="align-center">Detected</th>
+                @if (isAdmin) { <th class="align-center">MIME Type</th> }
+                <th class="align-center">Processed</th>
+                @if (isAdmin) { <th class="align-center">Processed At</th> }
+                @if (isAdmin) { <th class="align-center">Modified By</th> }
+                @if (isAdmin) { <th class="align-center">Drive Modified</th> }
+                @if (isAdmin) { <th class="align-center">Security Checked</th> }
+                @if (isAdmin) { <th class="align-center">Vendor ID</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs(); track log.id) {
+              <tr>
+                @if (isAdmin) { <td class="mono muted align-center">{{ log.id }}</td> }
+                <td class="font-medium file-name-cell align-center" [title]="log.fileName">{{ log.fileName }}</td>
+                <td class="align-center muted">{{ log.fileSize }}</td>
+                <td class="align-center">
+                  <span class="status-badge" [class.healthy]="log.securityStatus === 'Healthy'"
+                    [class.unhealthy]="log.securityStatus !== 'Healthy'">
+                    {{ log.securityStatus || 'Unknown' }}
+                  </span>
+                </td>
+                @if (isAdmin) { <td class="muted align-center">{{ log.securityFailReason || '-' }}</td> }
+                @if (isAdmin) { <td class="mono muted align-center" [title]="log.fileId">{{ log.fileId || '-' }}</td> }
+                <td class="align-center"><span class="tag">{{ log.changeType }}</span></td>
+                <td class="muted align-center">{{ log.detectedAt | date:'short' }}</td>
+                @if (isAdmin) { <td class="mono muted align-center">{{ log.mimeType }}</td> }
+                <td class="align-center">
+                  <span class="status-badge" [class.healthy]="log.processed" [class.unhealthy]="!log.processed">
+                    {{ log.processed ? 'Yes' : 'No' }}
+                  </span>
+                </td>
+                @if (isAdmin) { <td class="muted align-center">{{ log.processedAt ? (log.processedAt | date:'short') :
+                  '-' }}</td> }
+                @if (isAdmin) { <td class="muted align-center" [title]="log.modifiedBy">{{ log.modifiedBy || '-' }}</td>
+                }
+                @if (isAdmin) { <td class="muted align-center">{{ log.googleDriveModifiedTime | date:'short' }}</td> }
+                @if (isAdmin) { <td class="muted align-center">{{ log.securityCheckedAt ? (log.securityCheckedAt |
+                  date:'short') : '-' }}</td> }
+                @if (isAdmin) { <td class="mono muted align-center">{{ log.uploadedByVendorId || '-' }}</td> }
+              </tr>
+              }
+              @if (!logs().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 15 : 6" class="empty-cell">No logs found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button class="page-btn" (click)="prevPage()" [disabled]="page() === 1">Prev</button>
+        <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\logs\logs.ts
+============================================================
+import { Component, OnInit, signal, inject } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { ApiService, FileChangeLog, LogsResponse } from '../../core/services/api.service';
+import { Auth } from '../../core/services/auth';
+
+@Component({
+    selector: 'app-logs',
+    standalone: true,
+    imports: [DatePipe],
+    templateUrl: './logs.html',
+    styleUrl: './logs.css',
+})
+export class Logs implements OnInit {
+    private api = inject(ApiService);
+    private auth = inject(Auth);
+
+    logs = signal<FileChangeLog[]>([]);
+    page = signal(1);
+    totalPages = signal(1);
+    total = signal(0);
+    changeTypeFilter = signal<string | null>(null);
+    isLoading = signal(false);
+    get isAdmin() { return this.auth.isAdmin; }
+
+    ngOnInit() {
+        this.loadLogs();
+    }
+
+    loadLogs() {
+        this.isLoading.set(true);
+        this.api.getLogs(this.page(), 50, this.changeTypeFilter() ?? undefined).subscribe({
+            next: (res: LogsResponse) => {
+                this.logs.set(res.logs);
+                this.totalPages.set(res.totalPages);
+                this.total.set(res.total);
+                this.isLoading.set(false);
+            },
+            error: (err) => {
+                console.error('Failed loading logs', err);
+                this.isLoading.set(false);
+            }
+        });
+    }
+
+    setChangeType(type: string | null) {
+        this.changeTypeFilter.set(type);
+        this.page.set(1);
+        this.loadLogs();
+    }
+
+    nextPage() {
+        if (this.page() < this.totalPages()) {
+            this.page.update(p => p + 1);
+            this.loadLogs();
+        }
+    }
+
+    prevPage() {
+        if (this.page() > 1) {
+            this.page.update(p => p - 1);
+            this.loadLogs();
+        }
+    }
+
+    formatFileSize(bytes: number): string {
+        if (!bytes) return 'â€”';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    securityLabel(status: string): string {
+        if (!status) return 'â€”';
+        return status === 'Healthy' ? 'âœ“ Healthy' : 'âœ— Unhealthy';
+    }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\products\products.css
+============================================================
+/* â”€â”€â”€ Shared page styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0;
+}
+
+/* â”€â”€â”€ Toolbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.toolbar-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-box {
+    display: flex;
+    gap: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+}
+
+.search-box input {
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    width: 200px;
+}
+
+.search-go {
+    padding: 8px 16px;
+    border: none;
+    background: var(--gradient-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.search-go:hover {
+    opacity: 0.85;
+}
+
+.category-select {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+}
+
+.category-select option {
+    background: var(--bg);
+    color: var(--text-primary);
+}
+
+/* â”€â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 100px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(168, 85, 247, 0.15);
+    border-top-color: var(--glow-purple);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* â”€â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.table-container {
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+thead th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+}
+
+tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr {
+    transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.product-name {
+    font-weight: 500;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+.align-right {
+    text-align: right;
+}
+
+.align-center {
+    text-align: center !important;
+}
+
+.muted {
+    color: var(--text-muted);
+}
+
+.tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--glow-cyan);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+/* â”€â”€â”€ Pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.page-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.empty-cell {
+    text-align: center;
+    padding: 40px 16px !important;
+    color: var(--text-muted);
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\products\products.html
+============================================================
+<section class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Products</h1>
+      <p class="page-subtitle">All processed products and their sales</p>
+    </div>
+  </div>
+  <div class="section-panel">
+    <div class="section-body" style="padding-top: 22px;">
+      <div class="table-container">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                @if (isAdmin) { <th class="align-center">Product ID</th> }
+                <th class="align-center">Product Name</th>
+                <th class="align-center">Category</th>
+                <th class="align-center">Unit Rate</th>
+                <th class="align-center">Qty Sold</th>
+                @if (isAdmin) { <th class="align-center">Revenue</th> }
+                <th class="align-center">Invoices</th>
+                <th class="align-center">Last Sold</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of products(); track p.productId) {
+              <tr>
+                @if (isAdmin) { <td class="mono muted align-center" [title]="p.productId">{{ p.productId }}</td> }
+                <td class="font-medium align-center" [title]="p.productName">{{ p.productName }}</td>
+                <td class="align-center"><span class="tag">{{ p.category }}</span></td>
+                <td class="align-center">{{ p.defaultUnitRate | currency:'USD':'symbol':'1.2-2' }}</td>
+                <td class="align-center muted">{{ p.totalQuantitySold }}</td>
+                @if (isAdmin) { <td class="align-center font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0'
+                  }}</td> }
+                <td class="align-center muted">{{ p.invoiceCount }}</td>
+                <td class="align-center muted">{{ p.lastSoldDate | date:'mediumDate' }}</td>
+              </tr>
+              }
+              @if (!products().length) {
+              <tr>
+                <td [attr.colspan]="isAdmin ? 8 : 6" class="empty-cell">No products found</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="pagination">
+        <button class="page-btn" (click)="prevPage()" [disabled]="page() === 1">Prev</button>
+        <span class="page-info">Page {{ page() }} / {{ totalPages() }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="page() >= totalPages()">Next</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\products\products.ts
+============================================================
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { ApiService, Product, ProductsResponse, Category } from '../../core/services/api.service';
+import { Auth } from '../../core/services/auth';
+
+@Component({
+  selector: 'app-products',
+  standalone: true,
+  imports: [FormsModule, CurrencyPipe, DatePipe],
+  templateUrl: './products.html',
+  styleUrl: './products.css',
+})
+export class Products implements OnInit {
+  private api = inject(ApiService);
+  private auth = inject(Auth);
+
+  // Normalize to boolean (Auth.isAdmin may be a method).
+  get isAdmin() {
+    return typeof (this.auth as any).isAdmin === 'function'
+      ? (this.auth as any).isAdmin()
+      : !!(this.auth as any).isAdmin;
+  }
+
+  products = signal<Product[]>([]);
+  categories = signal<Category[]>([]);
+
+  page = signal(1);
+  totalPages = signal(1);
+  total = signal(0);
+
+  isLoading = signal(false);
+
+  // IMPORTANT: ngModel expects plain fields (not signals).
+  categoryFilter: string = 'All Categories';
+  searchQuery: string = '';
+
+  ngOnInit(): void {
+    this.loadCategories();
+    this.loadProducts();
+  }
+
+  loadCategories(): void {
+    this.api.getProductCategories().subscribe({
+      next: (cats) => this.categories.set(cats ?? []),
+      error: (err) => console.error('Failed loading categories', err),
+    });
+  }
+
+  loadProducts(): void {
+    this.isLoading.set(true);
+
+    const category =
+      this.categoryFilter && this.categoryFilter !== 'All Categories'
+        ? this.categoryFilter
+        : undefined;
+
+    const search =
+      this.searchQuery && this.searchQuery.trim().length
+        ? this.searchQuery.trim()
+        : undefined;
+
+    this.api.getProducts(this.page(), 50, category, search).subscribe({
+      next: (res: ProductsResponse) => {
+        this.products.set(res.products ?? []);
+        this.totalPages.set(res.totalPages ?? Math.max(1, Math.ceil((res.total ?? 0) / 50)));
+        this.total.set(res.total ?? 0);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed loading products', err);
+        this.products.set([]);
+        this.totalPages.set(1);
+        this.total.set(0);
+        this.isLoading.set(false);
+      },
+    });
+  }
+
+  onSearch(): void {
+    this.page.set(1);
+    this.loadProducts();
+  }
+
+  onCategoryChange(): void {
+    this.page.set(1);
+    this.loadProducts();
+  }
+
+  nextPage(): void {
+    if (this.page() < this.totalPages()) {
+      this.page.update((p) => p + 1);
+      this.loadProducts();
+    }
+  }
+
+  prevPage(): void {
+    if (this.page() > 1) {
+      this.page.update((p) => p - 1);
+      this.loadProducts();
+    }
+  }
+}
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\upload\upload.css
+============================================================
+.upload-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.title {
+  font-size: 36px;
+  line-height: 2;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-bottom: 40px;
+}
+
+/* Upload card */
+.upload-card {
+  position: relative;
+  border-radius: 24px;
+  padding: 48px;
+
+  background: var(--bg-elevated);
+  backdrop-filter: blur(16px);
+
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.upload-card:hover {
+  border-color: var(--glow-purple);
+  box-shadow: 0 0 4px rgba(170, 0, 255, 0.25);
+}
+
+.upload-card.drag-over {
+  color: var(--glow-purple);
+  border-color: var(--glow-purple);
+
+  box-shadow:
+    0 0 24px rgba(170, 0, 255, 0.35),
+    0 0 48px rgba(170, 0, 255, 0.25);
+}
+
+.upload-content {
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  transition: filter 0.3s ease, transform 0.3s ease, color 0.3s ease;
+}
+
+.text {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.hint {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.browse-btn {
+  padding: 5px 10px;
+  font-size: 14px;
+  font-weight: 500;
+
+  border-radius: 6px;
+  border: 1px solid var(--text-muted);
+
+  background: transparent;
+  color: var(--text-primary);
+
+  cursor: pointer;
+  transition: filter 0.3s ease, transform 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.browse-btn:hover {
+  box-shadow: 0 0 8px rgba(170, 0, 255, 0.25);
+  border-color: var(--glow-purple);
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: var(--glow-purple);
+  transition: width 0.3s ease;
+}
+
+.files-section {
+  margin-top: 48px;
+}
+
+.files-title {
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.file-card {
+  position: relative;
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.file-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.file-card-content {
+  position: relative;
+  z-index: 2;
+}
+
+.file-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.file-status.status-done {
+  color: var(--glow-green);
+  font-weight: 600;
+}
+
+.file-status.status-rejected {
+  color: var(--glow-red);
+  font-weight: 600;
+}
+
+.file-card.done {
+  cursor: default;
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+.file-card.done:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.file-card.rejected {
+  border-color: rgba(255, 42, 42, 0.2);
+}
+
+.reject-reason {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--glow-red);
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\upload\upload.html
+============================================================
+<section class="upload-page">
+  <h1 class="title">Upload Documents</h1>
+  <p class="subtitle">
+    Securely upload your files to extract insights.
+  </p>
+
+  <div class="upload-card" [class.drag-over]="isDragOver" (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+    <div class="upload-content">
+      <div class="icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+          class="upload-icon">
+          <path d="M16 16l-4-4-4 4M12 12v9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <p class="text">
+        Drag & drop your documents here
+      </p>
+
+      <p class="hint">
+        PDF, JPEG, PNG supported
+      </p>
+
+      <!-- Hidden file input -->
+      <input type="file" multiple hidden #fileInput accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelect($event)" />
+
+      <!-- Simple browse button -->
+      <button class="browse-btn" (click)="fileInput.click()">
+        Browse Files
+      </button>
+    </div>
+  </div>
+
+  @if (files.length) {
+  <section class="files-section">
+    <h2 class="files-title">Uploaded Files</h2>
+
+    <div class="files-grid">
+      @for (item of files; track item.file.name) {
+      <div class="file-card" [class.done]="item.status() === 'done'" [class.rejected]="item.status() === 'rejected'">
+        <!-- Facade for completed files -->
+        @if (item.status() === 'done') {
+        <div class="facade"></div>
+        }
+
+        <div class="file-card-content">
+          <div class="file-icon">ðŸ“„</div>
+
+          <div class="file-name">
+            {{ item.file.name }}
+          </div>
+
+          @if (item.status() === 'uploading') {
+          <div class="progress-bar">
+            <div class="progress" [style.width.%]="item.progress()"></div>
+          </div>
+          }
+
+          <div class="file-status" [class.status-done]="item.status() === 'done'"
+            [class.status-rejected]="item.status() === 'rejected'">
+            @if (item.status() === 'done') {
+            âœ“ Uploaded
+            } @else if (item.status() === 'rejected') {
+            âœ— Rejected
+            } @else {
+            {{ item.status() }}
+            }
+          </div>
+
+          @if (item.status() === 'rejected' && item.rejectReason()) {
+          <div class="reject-reason">
+            {{ item.rejectReason() }}
+          </div>
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </section>
+  }
+
+
+
+</section>
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\upload\upload.spec.ts
+============================================================
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Upload } from './upload';
+
+describe('Upload', () => {
+  let component: Upload;
+  let fixture: ComponentFixture<Upload>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [Upload]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(Upload);
+    component = fixture.componentInstance;
+    await fixture.whenStable();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+
+============================================================
+FILE: C:\Users\anagha.kini\OneDrive - AVEVA Solutions Limited\dev\invoice-poc\frontend\src\app\features\upload\upload.ts
+============================================================
+import { Component, signal } from '@angular/core';
+import { HttpClient, HttpEventType } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+
+type UploadStatus = 'pending' | 'uploading' | 'done' | 'rejected';
+
+@Component({
+  selector: 'app-upload',
+  standalone: true,
+  templateUrl: './upload.html',
+  styleUrl: './upload.css',
+})
+export class Upload {
+
+  constructor(private http: HttpClient) { }
+
+  isDragOver = false;
+
+  files: {
+    file: File;
+    progress: ReturnType<typeof signal<number>>;
+    status: ReturnType<typeof signal<UploadStatus>>;
+    rejectReason: ReturnType<typeof signal<string>>;
+  }[] = [];
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.isDragOver = false;
+
+    if (!event.dataTransfer) return;
+
+    Array.from(event.dataTransfer.files).forEach(file => {
+      this.addFile(file);
+    });
+  }
+
+  onFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files) return;
+
+    Array.from(input.files).forEach(file => {
+      this.addFile(file);
+    });
+
+    input.value = '';
+  }
+
+  private addFile(file: File) {
+    const item = {
+      file,
+      progress: signal(0),
+      status: signal<UploadStatus>('pending'),
+      rejectReason: signal(''),
+    };
+
+    this.files.push(item);
+    this.startUpload(item);
+  }
+
+  startUpload(item: {
+    file: File;
+    progress: ReturnType<typeof signal<number>>;
+    status: ReturnType<typeof signal<UploadStatus>>;
+    rejectReason: ReturnType<typeof signal<string>>;
+  }) {
+
+    item.status.set('uploading');
+
+    const formData = new FormData();
+    formData.append('file', item.file);
+
+    this.http.post(
+      `${environment.apiUrl}/VendorInvoices/upload`,
+      formData,
+      {
+        reportProgress: true,
+        observe: 'events'
+      }
+    ).subscribe({
+      next: (event) => {
+
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          item.progress.set(percent);
+        }
+
+        if (event.type === HttpEventType.Response) {
+          item.progress.set(100);
+          const body = event.body as any;
+          if (body && body.success === false && body.securityReason) {
+            item.status.set('rejected');
+            item.rejectReason.set(body.securityReason || 'Security violation');
+          } else {
+            item.status.set('done');
+          }
+        }
+      },
+      error: (err) => {
+        // Handle 422 (security violation) or other errors
+        if (err.status === 422 || err.status === 400) {
+          item.status.set('rejected');
+          const reason = err.error?.securityReason || err.error?.message || 'File rejected';
+          item.rejectReason.set(reason);
+        } else {
+          item.status.set('rejected');
+          item.rejectReason.set('Upload failed');
+        }
+      }
+    });
+  }
+}
+
+
+
