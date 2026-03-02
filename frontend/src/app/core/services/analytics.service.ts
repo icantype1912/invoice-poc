@@ -48,26 +48,29 @@ export class AnalyticsService {
 
     constructor(private http: HttpClient) { }
 
-    getCategorySales(startDate: Date, endDate: Date): Observable<CategorySales[]> {
-        const params = new HttpParams()
+    getCategorySales(startDate: Date, endDate: Date, vendorId?: string): Observable<CategorySales[]> {
+        let params = new HttpParams()
             .set('startDate', startDate.toISOString())
             .set('endDate', endDate.toISOString());
+        if (vendorId) params = params.set('vendorId', vendorId);
         return this.http.get<CategorySales[]>(`${this.baseUrl}/analytics/categories/sales`, { params });
     }
 
-    getTrendingProducts(startDate: Date, endDate: Date, topN = 5): Observable<ProductTrend[]> {
-        const params = new HttpParams()
+    getTrendingProducts(startDate: Date, endDate: Date, topN = 5, vendorId?: string): Observable<ProductTrend[]> {
+        let params = new HttpParams()
             .set('startDate', startDate.toISOString())
             .set('endDate', endDate.toISOString())
             .set('topN', topN);
+        if (vendorId) params = params.set('vendorId', vendorId);
         return this.http.get<ProductTrend[]>(`${this.baseUrl}/analytics/products/trending`, { params });
     }
 
-    getProductSales(startDate: Date, endDate: Date, category?: string): Observable<ProductSales[]> {
+    getProductSales(startDate: Date, endDate: Date, category?: string, vendorId?: string): Observable<ProductSales[]> {
         let params = new HttpParams()
             .set('startDate', startDate.toISOString())
             .set('endDate', endDate.toISOString());
         if (category) params = params.set('category', category);
+        if (vendorId) params = params.set('vendorId', vendorId);
         return this.http.get<ProductSales[]>(`${this.baseUrl}/analytics/products/sales`, { params });
     }
 
@@ -75,12 +78,14 @@ export class AnalyticsService {
         productId: string,
         startDate: Date,
         endDate: Date,
-        granularity = 'Monthly'
+        granularity = 'Monthly',
+        vendorId?: string
     ): Observable<ProductTimeSeries[]> {
-        const params = new HttpParams()
+        let params = new HttpParams()
             .set('startDate', startDate.toISOString())
             .set('endDate', endDate.toISOString())
             .set('granularity', granularity);
+        if (vendorId) params = params.set('vendorId', vendorId);
         return this.http.get<ProductTimeSeries[]>(
             `${this.baseUrl}/analytics/products/${productId}/timeseries`,
             { params }
