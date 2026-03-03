@@ -99,9 +99,10 @@ namespace invoice_v1.src.Api.Controllers
                         // Parse result safely
                         var resultJson = JsonSerializer.Serialize(request.Result);
                         var resultObj = JsonSerializer.Deserialize<JsonElement>(resultJson);
+                        var resultDoc = JsonDocument.Parse(resultJson);
 
                         await _invoiceService.CreateOrUpdateInvoiceFromCallbackAsync(request.JobId, resultObj);
-                        await _jobService.CompleteJobAsync(request.JobId);
+                        await _jobService.CompleteJobAsync(request.JobId, resultDoc);
                         _logger.LogInformation("Job {JobId} completed successfully.", request.JobId);
                         break;
 

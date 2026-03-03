@@ -1,0 +1,18 @@
+2026-01-29 11:35:21.285 +05:30 [INF] Starting Invoice Processing Backend V2
+2026-01-29 11:35:21.452 +05:30 [INF] Invoice Processing Backend V2 is starting
+2026-01-29 11:35:21.462 +05:30 [INF] Drive Monitoring Service is starting
+2026-01-29 11:35:22.406 +05:30 [INF] Job Creation Service starting. Interval: "00:00:30"
+2026-01-29 11:35:22.695 +05:30 [INF] Hydrated 10 files from database into tracking dictionary
+2026-01-29 11:35:22.703 +05:30 [INF] Drive Monitoring check at: "2026-01-29T11:35:22.7031595+05:30"
+2026-01-29 11:35:22.798 +05:30 [INF] Google Drive service initialized successfully
+2026-01-29 11:35:24.050 +05:30 [INF] Listed 10 files from folder 1-PenAeLnXGUiZeNrmxJoVOX4yAf_sMCJ
+2026-01-29 11:35:24.091 +05:30 [INF] Monitoring check completed. Tracked 10 files, 0 deleted
+2026-01-29 13:07:31.221 +05:30 [INF] Drive Monitoring check at: "2026-01-29T13:07:31.2210362+05:30"
+2026-01-29 13:07:32.094 +05:30 [INF] Listed 10 files from folder 1-PenAeLnXGUiZeNrmxJoVOX4yAf_sMCJ
+2026-01-29 13:07:32.098 +05:30 [INF] Monitoring check completed. Tracked 10 files, 0 deleted
+2026-01-29 14:29:06.892 +05:30 [INF] Drive Monitoring check at: "2026-01-29T14:29:06.8922814+05:30"
+2026-01-29 14:29:07.842 +05:30 [INF] Listed 10 files from folder 1-PenAeLnXGUiZeNrmxJoVOX4yAf_sMCJ
+2026-01-29 14:29:07.846 +05:30 [INF] Monitoring check completed. Tracked 10 files, 0 deleted
+2026-01-29 15:33:07.480 +05:30 [INF] Drive Monitoring check at: "2026-01-29T15:33:07.4806766+05:30"
+2026-01-29 15:33:08.402 +05:30 [INF] Listed 10 files from folder 1-PenAeLnXGUiZeNrmxJoVOX4yAf_sMCJ
+2026-01-29 15:33:08.406 +05:30 [INF] Monitoring check completed. Tracked 10 files, 0 deleted

@@ -1,8 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { ApiService, Product, ProductsResponse, Category } from '../../core/services/api.service';
 import { Auth } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
+type Vendor = { id: string; email: string; companyName?: string; role: number };
 
 @Component({
   selector: 'app-products',
@@ -14,6 +18,7 @@ import { Auth } from '../../core/services/auth';
 export class Products implements OnInit {
   private api = inject(ApiService);
   private auth = inject(Auth);
+  private http = inject(HttpClient);
 
   // Normalize to boolean (Auth.isAdmin may be a method).
   get isAdmin() {
@@ -31,12 +36,30 @@ export class Products implements OnInit {
 
   isLoading = signal(false);
 
+  // Vendor filter
+  vendors = signal<Vendor[]>([]);
+  selectedVendorId = signal<string>('');
+
   // IMPORTANT: ngModel expects plain fields (not signals).
   categoryFilter: string = 'All Categories';
   searchQuery: string = '';
 
   ngOnInit(): void {
+    if (this.isAdmin) this.loadVendors();
     this.loadCategories();
+    this.loadProducts();
+  }
+
+  loadVendors(): void {
+    this.http.get<Vendor[]>(`${environment.apiUrl}/admin/users`).subscribe({
+      next: (users) => this.vendors.set((users || []).filter(u => u.role === 1)),
+      error: () => { }
+    });
+  }
+
+  onVendorChange(event: Event): void {
+    this.selectedVendorId.set((event.target as HTMLSelectElement).value);
+    this.page.set(1);
     this.loadProducts();
   }
 
@@ -60,7 +83,7 @@ export class Products implements OnInit {
         ? this.searchQuery.trim()
         : undefined;
 
-    this.api.getProducts(this.page(), 50, category, search).subscribe({
+    this.api.getProducts(this.page(), 50, category, search, this.selectedVendorId() || undefined).subscribe({
       next: (res: ProductsResponse) => {
         this.products.set(res.products ?? []);
         this.totalPages.set(res.totalPages ?? Math.max(1, Math.ceil((res.total ?? 0) / 50)));

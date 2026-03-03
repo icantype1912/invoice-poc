@@ -41,6 +41,9 @@ namespace invoice_v1.src.Infrastructure.Data
                 modelBuilder.Entity<JobQueue>()
                     .Ignore(e => e.ErrorMessage);
 
+                modelBuilder.Entity<JobQueue>()
+                    .Ignore(e => e.ResultJson);
+
                 modelBuilder.Entity<Invoice>()
                     .Ignore(e => e.ExtractedDataJson);
             }
@@ -224,6 +227,9 @@ namespace invoice_v1.src.Infrastructure.Data
                       .HasColumnType("timestamptz");
 
                 entity.Property(e => e.ErrorMessage)
+                      .HasColumnType("jsonb");
+
+                entity.Property(e => e.ResultJson)
                       .HasColumnType("jsonb");
 
                 entity.Property(e => e.CreatedAt)

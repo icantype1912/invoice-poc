@@ -42,6 +42,12 @@ export type ProductTimeSeries = {
     invoiceCount: number;
 };
 
+export type RevenueTrend = {
+    period: string;
+    revenue: number;
+    invoiceCount: number;
+};
+
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
     private baseUrl = environment.apiUrl;
@@ -88,6 +94,23 @@ export class AnalyticsService {
         if (vendorId) params = params.set('vendorId', vendorId);
         return this.http.get<ProductTimeSeries[]>(
             `${this.baseUrl}/analytics/products/${productId}/timeseries`,
+            { params }
+        );
+    }
+
+    getRevenueTrend(
+        startDate: Date,
+        endDate: Date,
+        granularity = 'Monthly',
+        vendorId?: string
+    ): Observable<RevenueTrend[]> {
+        let params = new HttpParams()
+            .set('startDate', startDate.toISOString())
+            .set('endDate', endDate.toISOString())
+            .set('granularity', granularity);
+        if (vendorId) params = params.set('vendorId', vendorId);
+        return this.http.get<RevenueTrend[]>(
+            `${this.baseUrl}/analytics/revenue/trend`,
             { params }
         );
     }

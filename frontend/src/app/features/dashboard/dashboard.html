@@ -6,26 +6,26 @@
       <h1 class="title">Analytics Dashboard</h1>
       <p class="subtitle">
         @if (isAdmin && selectedVendorId()) {
-          Viewing: <strong>{{ selectedVendorLabel() }}</strong>
+        Viewing: <strong>{{ selectedVendorLabel() }}</strong>
         } @else if (isAdmin) {
-          All vendors · Invoice analytics and product insights
+        All vendors · Invoice analytics and product insights
         } @else {
-          Your invoice analytics and product insights
+        Your invoice analytics and product insights
         }
       </p>
     </div>
 
     <div class="header-controls">
       @if (isAdmin) {
-        <div class="vendor-select-wrap">
-          <label class="vendor-label">Vendor</label>
-          <select class="vendor-select" (change)="onVendorChange($event)" [value]="selectedVendorId()">
-            <option value="">All Vendors</option>
-            @for (v of vendors(); track v.id) {
-              <option [value]="v.id">{{ v.companyName || v.email }}</option>
-            }
-          </select>
-        </div>
+      <div class="vendor-select-wrap">
+        <label class="vendor-label">Vendor</label>
+        <select class="vendor-select" (change)="onVendorChange($event)" [value]="selectedVendorId()">
+          <option value="">All Vendors</option>
+          @for (v of vendors(); track v.id) {
+          <option [value]="v.id">{{ v.companyName || v.email }}</option>
+          }
+        </select>
+      </div>
       }
 
       <div class="range-filters">
@@ -39,17 +39,20 @@
 
   <!-- ── Loading ──────────────────────────────────────────────────── -->
   @if (isLoading()) {
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <span>Loading analytics…</span>
-    </div>
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <span>Loading analytics…</span>
+  </div>
   } @else {
 
   <!-- ── KPI Cards ─────────────────────────────────────────────────── -->
   <div class="kpi-grid">
     <div class="stat-card" style="--delay:0ms">
       <div class="stat-icon stat-icon--purple">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
       </div>
       <div class="stat-label">Total Revenue</div>
       <div class="stat-value">{{ totalRevenue() | currency:'USD':'symbol':'1.0-0' }}</div>
@@ -58,7 +61,10 @@
 
     <div class="stat-card" style="--delay:60ms">
       <div class="stat-icon stat-icon--cyan">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
       </div>
       <div class="stat-label">Total Invoices</div>
       <div class="stat-value">{{ totalInvoices() }}</div>
@@ -67,7 +73,10 @@
 
     <div class="stat-card" style="--delay:120ms">
       <div class="stat-icon stat-icon--green">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </svg>
       </div>
       <div class="stat-label">Avg. Order Value</div>
       <div class="stat-value">{{ avgOrderValue() | currency:'USD':'symbol':'1.0-0' }}</div>
@@ -76,7 +85,10 @@
 
     <div class="stat-card" style="--delay:180ms">
       <div class="stat-icon stat-icon--amber">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+          <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
       </div>
       <div class="stat-label">Total Products</div>
       <div class="stat-value">{{ totalProducts() }}</div>
@@ -85,7 +97,9 @@
 
     <div class="stat-card stat-card--accent" style="--delay:240ms">
       <div class="stat-icon stat-icon--pink">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
       </div>
       <div class="stat-label">Top Category</div>
       <div class="stat-value stat-value--small">{{ topCategory() }}</div>
@@ -94,7 +108,10 @@
 
     <div class="stat-card" style="--delay:300ms">
       <div class="stat-icon stat-icon--cyan">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
       </div>
       <div class="stat-label">Total Quantity</div>
       <div class="stat-value">{{ totalQuantity() | number:'1.0-0' }}</div>
@@ -109,121 +126,130 @@
         <div>
           <h2>Revenue Over Time</h2>
           <span class="panel-hint">
-            {{ selectedRange() === '30d' ? 'Daily' : selectedRange() === '90d' ? 'Weekly' : selectedRange() === '12m' ? 'Monthly' : 'Monthly' }} · {{ selectedVendorLabel() }}
+            {{ selectedRange() === '30d' ? 'Daily' : selectedRange() === '90d' ? 'Weekly' : selectedRange() === '12m' ?
+            'Monthly' : 'Monthly' }} · {{ selectedVendorLabel() }}
           </span>
         </div>
       </div>
       <div #lineContainer class="chart-host chart-host--line"></div>
     </div>
 
-    <!-- ── AI Ask Panel ────────────────────────────────────────────── -->
+    <!-- ── AI Ask Panel (togglable from navbar) ─────────────────── -->
+    @if (chatOpen) {
     <div class="panel panel--ask">
       <div class="panel-header">
         <div class="ask-header-content">
           <div class="ask-header-title">
             <span class="ask-spark" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z" />
+              </svg>
             </span>
             <h2>Ask your data</h2>
           </div>
           <span class="panel-hint">Plain English · instant answers</span>
         </div>
+        <button class="ask-close-btn" (click)="chatbotService.close()" aria-label="Close chatbot">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       <!-- Chat history -->
       <div class="ask-history" #askHistory>
         @if (askMessages().length === 0) {
-          <div class="ask-empty">
-            <div class="ask-empty-icon" aria-hidden="true">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <p class="ask-empty-title">Nothing asked yet</p>
-            <p class="ask-empty-hint">Try one of the suggestions below</p>
+        <div class="ask-empty">
+          <div class="ask-empty-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
           </div>
+          <p class="ask-empty-title">Nothing asked yet</p>
+          <p class="ask-empty-hint">Try one of the suggestions below</p>
+        </div>
         }
 
         @for (msg of askMessages(); track msg.id) {
-          <!-- User bubble -->
-          <div class="ask-bubble ask-bubble--user">
-            <span class="bubble-text">{{ msg.question }}</span>
+        <!-- User bubble -->
+        <div class="ask-bubble ask-bubble--user">
+          <span class="bubble-text">{{ msg.question }}</span>
+        </div>
+        <!-- Answer bubble -->
+        <div class="ask-bubble ask-bubble--ai" [class.ask-bubble--loading]="msg.loading">
+          @if (msg.loading) {
+          <span class="ask-thinking">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          </span>
+          } @else if (msg.error) {
+          <span class="bubble-error">{{ msg.answer }}</span>
+          } @else {
+          <!-- Table answer -->
+          @if (msg.rows && msg.rows.length > 0) {
+          <div class="bubble-table-wrap">
+            <table class="bubble-table">
+              <thead>
+                <tr>
+                  @for (col of msg.columns; track col) {
+                  <th>{{ col }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of msg.rows; track $index) {
+                <tr>
+                  @for (col of msg.columns; track col) {
+                  <td>{{ formatCell(row[col]) }}</td>
+                  }
+                </tr>
+                }
+              </tbody>
+            </table>
+            <span class="bubble-row-count">{{ msg.rows.length }} row{{ msg.rows.length !== 1 ? 's' : '' }}</span>
           </div>
-          <!-- Answer bubble -->
-          <div class="ask-bubble ask-bubble--ai" [class.ask-bubble--loading]="msg.loading">
-            @if (msg.loading) {
-              <span class="ask-thinking">
-                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-              </span>
-            } @else if (msg.error) {
-              <span class="bubble-error">{{ msg.answer }}</span>
-            } @else {
-              <!-- Table answer -->
-              @if (msg.rows && msg.rows.length > 0) {
-                <div class="bubble-table-wrap">
-                  <table class="bubble-table">
-                    <thead>
-                      <tr>
-                        @for (col of msg.columns; track col) {
-                          <th>{{ col }}</th>
-                        }
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (row of msg.rows; track $index) {
-                        <tr>
-                          @for (col of msg.columns; track col) {
-                            <td>{{ formatCell(row[col]) }}</td>
-                          }
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                  <span class="bubble-row-count">{{ msg.rows.length }} row{{ msg.rows.length !== 1 ? 's' : '' }}</span>
-                </div>
-              } @else {
-                <!-- Plain text answer -->
-                <span class="bubble-text">{{ msg.answer }}</span>
-              }
-            }
-          </div>
+          } @else {
+          <!-- Plain text answer -->
+          <span class="bubble-text">{{ msg.answer }}</span>
+          }
+          }
+        </div>
         }
       </div>
 
       <!-- Suggestion chips -->
       @if (askMessages().length === 0) {
-        <div class="ask-chips">
-          @for (s of askSuggestions; track s) {
-            <button class="ask-chip" (click)="askFromChip(s)">{{ s }}</button>
-          }
-        </div>
+      <div class="ask-chips">
+        @for (s of askSuggestions; track s) {
+        <button class="ask-chip" (click)="askFromChip(s)">{{ s }}</button>
+        }
+      </div>
       }
 
       <!-- Input row -->
       <div class="ask-input-row" [class.ask-input--busy]="askLoading()">
-        <input
-          #askInput
-          class="ask-input"
-          type="text"
-          [(ngModel)]="askQuery"
-          (keydown.enter)="submitAsk()"
-          placeholder="e.g. Which product has highest revenue?"
-          [disabled]="askLoading()"
-          maxlength="500"
-          aria-label="Ask your data"
-        />
-        <button
-          class="ask-send"
-          (click)="submitAsk()"
-          [disabled]="askLoading() || !askQuery.trim()"
-          aria-label="Send question"
-        >
+        <input #askInput class="ask-input" type="text" [(ngModel)]="askQuery" (keydown.enter)="submitAsk()"
+          placeholder="e.g. Which product has highest revenue?" [disabled]="askLoading()" maxlength="500"
+          aria-label="Ask your data" />
+        <button class="ask-send" (click)="submitAsk()" [disabled]="askLoading() || !askQuery.trim()"
+          aria-label="Send question">
           @if (askLoading()) {
-            <span class="ask-send-spinner"></span>
+          <span class="ask-send-spinner"></span>
           } @else {
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
           }
         </button>
       </div>
     </div>
+    }
   </div>
 
   <!-- ── Charts Row ────────────────────────────────────────────────── -->
@@ -257,42 +283,47 @@
     </div>
 
     @if (recentInvoices().length === 0) {
-      <div class="empty-row">No invoices available</div>
+    <div class="empty-row">No invoices available</div>
     } @else {
-      <div class="invoice-list">
-        <div class="invoice-row invoice-row--header" [class.invoice-row--admin]="isAdmin">
-          <span>Invoice #</span>
-          <span>Date</span>
-          @if (isAdmin) { <span>Vendor</span> }
-          <span class="align-right">Items</span>
-          <span class="align-right">Amount</span>
-          <span></span>
-        </div>
-
-        @for (inv of recentInvoices(); track inv.id) {
-          <div class="invoice-row" [class.invoice-row--admin]="isAdmin" (click)="openInvoice(inv)" [class.clickable]="!!inv.googleDriveFileId">
-            <span class="inv-number">
-              <span class="inv-dot"></span>
-              {{ inv.invoiceNumber || inv.originalFileName || 'Invoice' }}
-            </span>
-            <span class="muted inv-date">
-              {{ (inv.invoiceDate || inv.createdAt) | date:'MMM d, y' }}
-            </span>
-            @if (isAdmin) {
-              <span class="inv-vendor">{{ inv.vendorName || inv.companyName || '—' }}</span>
-            }
-            <span class="align-right muted">{{ invoiceItemCount(inv) }}</span>
-            <span class="align-right font-bold">
-              {{ (inv.totalAmount || 0) | currency:(inv.currency || 'USD'):'symbol':'1.0-0' }}
-            </span>
-            <span class="inv-action">
-              @if (inv.googleDriveFileId) {
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              }
-            </span>
-          </div>
-        }
+    <div class="invoice-list">
+      <div class="invoice-row invoice-row--header" [class.invoice-row--admin]="isAdmin">
+        <span>Invoice #</span>
+        <span>Date</span>
+        @if (isAdmin) { <span>Vendor</span> }
+        <span class="align-right">Items</span>
+        <span class="align-right">Amount</span>
+        <span></span>
       </div>
+
+      @for (inv of recentInvoices(); track inv.id) {
+      <div class="invoice-row" [class.invoice-row--admin]="isAdmin" (click)="openInvoice(inv)"
+        [class.clickable]="!!inv.googleDriveFileId">
+        <span class="inv-number">
+          <span class="inv-dot"></span>
+          {{ inv.invoiceNumber || inv.originalFileName || 'Invoice' }}
+        </span>
+        <span class="muted inv-date">
+          {{ (inv.invoiceDate || inv.createdAt) | date:'MMM d, y' }}
+        </span>
+        @if (isAdmin) {
+        <span class="inv-vendor">{{ inv.vendorName || inv.companyName || '—' }}</span>
+        }
+        <span class="align-right muted">{{ invoiceItemCount(inv) }}</span>
+        <span class="align-right font-bold">
+          {{ (inv.totalAmount || 0) | currency:(inv.currency || 'USD'):'symbol':'1.0-0' }}
+        </span>
+        <span class="inv-action">
+          @if (inv.googleDriveFileId) {
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+          }
+        </span>
+      </div>
+      }
+    </div>
     }
   </div>
 
@@ -314,76 +345,78 @@
     </div>
 
     @if (activeTab() === 'trending') {
-      <div class="table-wrap">
-        <div class="table-row table-row--7 header">
-          <span>#</span><span>Product</span><span>Category</span>
-          <span class="align-right">Invoices</span><span class="align-right">Revenue</span>
-          <span class="align-right">Qty Sold</span><span class="align-right">Growth</span>
-        </div>
-        @for (p of trendingProducts(); track p.productId) {
-          <div class="table-row table-row--7">
-            <span class="rank">{{ p.rank }}</span>
-            <span class="product-name">{{ p.productName }}</span>
-            <span class="cat-tag">{{ p.category || '—' }}</span>
-            <span class="align-right muted">{{ p.invoiceCount }}</span>
-            <span class="align-right font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
-            <span class="align-right muted">{{ p.totalQuantity | number:'1.0-1' }}</span>
-            <span class="align-right" [ngClass]="growthClass(p.growthRate)">{{ growthLabel(p.growthRate) }}</span>
-          </div>
-        }
-        @empty { <div class="empty-row">No trending data available</div> }
+    <div class="table-wrap">
+      <div class="table-row table-row--7 header">
+        <span>#</span><span>Product</span><span>Category</span>
+        <span class="align-right">Invoices</span><span class="align-right">Revenue</span>
+        <span class="align-right">Qty Sold</span><span class="align-right">Growth</span>
       </div>
+      @for (p of trendingProducts(); track p.productId) {
+      <div class="table-row table-row--7">
+        <span class="rank">{{ p.rank }}</span>
+        <span class="product-name">{{ p.productName }}</span>
+        <span class="cat-tag">{{ p.category || '—' }}</span>
+        <span class="align-right muted">{{ p.invoiceCount }}</span>
+        <span class="align-right font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
+        <span class="align-right muted">{{ p.totalQuantity | number:'1.0-1' }}</span>
+        <span class="align-right" [ngClass]="growthClass(p.growthRate)">{{ growthLabel(p.growthRate) }}</span>
+      </div>
+      }
+      @empty { <div class="empty-row">No trending data available</div> }
+    </div>
     }
 
     @if (activeTab() === 'products') {
-      <div class="table-wrap">
-        <div class="table-row table-row--7 header">
-          <span>#</span><span>Product</span><span>Category</span>
-          <span class="align-right">Avg Unit Rate</span><span class="align-right">Qty Sold</span>
-          <span class="align-right">Invoices</span><span class="align-right">Total Revenue</span>
-        </div>
-        @for (p of topProductsByRevenue(); track p.productId; let i = $index) {
-          <div class="table-row table-row--7">
-            <span class="rank">{{ i + 1 }}</span>
-            <span class="product-name">{{ p.productName }}</span>
-            <span class="cat-tag">{{ p.category || '—' }}</span>
-            <span class="align-right muted">{{ p.averageUnitRate | currency:'USD':'symbol':'1.2-2' }}</span>
-            <span class="align-right muted">{{ p.totalQuantity | number:'1.0-1' }}</span>
-            <span class="align-right muted">{{ p.invoiceCount }}</span>
-            <span class="align-right font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
-          </div>
-        }
-        @empty { <div class="empty-row">No product data available</div> }
+    <div class="table-wrap">
+      <div class="table-row table-row--7 header">
+        <span>#</span><span>Product</span><span>Category</span>
+        <span class="align-right">Avg Unit Rate</span><span class="align-right">Qty Sold</span>
+        <span class="align-right">Invoices</span><span class="align-right">Total Revenue</span>
       </div>
+      @for (p of topProductsByRevenue(); track p.productId; let i = $index) {
+      <div class="table-row table-row--7">
+        <span class="rank">{{ i + 1 }}</span>
+        <span class="product-name">{{ p.productName }}</span>
+        <span class="cat-tag">{{ p.category || '—' }}</span>
+        <span class="align-right muted">{{ p.averageUnitRate | currency:'USD':'symbol':'1.2-2' }}</span>
+        <span class="align-right muted">{{ p.totalQuantity | number:'1.0-1' }}</span>
+        <span class="align-right muted">{{ p.invoiceCount }}</span>
+        <span class="align-right font-bold">{{ p.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
+      </div>
+      }
+      @empty { <div class="empty-row">No product data available</div> }
+    </div>
     }
 
     @if (activeTab() === 'categories') {
-      <div class="table-wrap">
-        <div class="table-row table-row--cat header">
-          <span>Category</span>
-          <span class="align-right">Products</span>
-          <span class="align-right">Invoices</span>
-          <span class="align-right">Qty Sold</span>
-          <span class="align-right">Avg Order</span>
-          <span class="align-right">Revenue</span>
-          <span>Share</span>
-        </div>
-        @for (c of categorySales(); track c.category) {
-          <div class="table-row table-row--cat">
-            <span class="product-name">{{ c.category }}</span>
-            <span class="align-right muted">{{ c.productCount }}</span>
-            <span class="align-right muted">{{ c.invoiceCount }}</span>
-            <span class="align-right muted">{{ c.totalQuantity | number:'1.0-0' }}</span>
-            <span class="align-right muted">{{ c.averageOrderValue | currency:'USD':'symbol':'1.0-0' }}</span>
-            <span class="align-right font-bold">{{ c.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
-            <span class="share-bar-wrap">
-              <div class="share-bar"><div class="share-bar-fill" [style.width.%]="categoryShare(c)"></div></div>
-              <span class="share-pct">{{ categoryShare(c) | number:'1.0-1' }}%</span>
-            </span>
-          </div>
-        }
-        @empty { <div class="empty-row">No category data available</div> }
+    <div class="table-wrap">
+      <div class="table-row table-row--cat header">
+        <span>Category</span>
+        <span class="align-right">Products</span>
+        <span class="align-right">Invoices</span>
+        <span class="align-right">Qty Sold</span>
+        <span class="align-right">Avg Order</span>
+        <span class="align-right">Revenue</span>
+        <span>Share</span>
       </div>
+      @for (c of categorySales(); track c.category) {
+      <div class="table-row table-row--cat">
+        <span class="product-name">{{ c.category }}</span>
+        <span class="align-right muted">{{ c.productCount }}</span>
+        <span class="align-right muted">{{ c.invoiceCount }}</span>
+        <span class="align-right muted">{{ c.totalQuantity | number:'1.0-0' }}</span>
+        <span class="align-right muted">{{ c.averageOrderValue | currency:'USD':'symbol':'1.0-0' }}</span>
+        <span class="align-right font-bold">{{ c.totalRevenue | currency:'USD':'symbol':'1.0-0' }}</span>
+        <span class="share-bar-wrap">
+          <div class="share-bar">
+            <div class="share-bar-fill" [style.width.%]="categoryShare(c)"></div>
+          </div>
+          <span class="share-pct">{{ categoryShare(c) | number:'1.0-1' }}%</span>
+        </span>
+      </div>
+      }
+      @empty { <div class="empty-row">No category data available</div> }
+    </div>
     }
   </div>
 

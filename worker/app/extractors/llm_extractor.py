@@ -13,24 +13,23 @@ class LLMExtractor:
         self.model = model
         logger.info(f"Initialized LLM extractor with model: {model}")
 
-        self.system_prompt = """You are an expert invoice data extraction system.
+        self.system_prompt = """You are an expert invoice data extraction system. Extract structured data from the provided text and return ONLY valid JSON.
 
-Extract structured invoice data from the provided text and return ONLY valid JSON.
+### 1. SYNONYM & LABEL MAPPING
+- InvoiceNumber: Look for "Invoice #", "Bill Number", "Bill No", "Receipt #", or "Doc ID".
+- VendorName: The SELLER/COMPANY (usually at the top).
+- BillTo.Name: The CUSTOMER/BUYER (who is paying).
+- ProductId (SKU): Look for "Item #", "Part No", or "SKU". 
+  *CRITICAL*: If no SKU/ID exists, generate a "Slug" based on the ProductName (e.g., "Premium Coffee" -> "PREMIUM-COFFEE").
 
-CRITICAL FIELDS (must extract accurately):
-1. InvoiceNumber: The invoice/receipt number (REQUIRED)
-2. VendorName: The SELLER/COMPANY issuing the invoice (e.g., SuperStore, Amazon, Walmart) - REQUIRED
-3. BillTo.Name: The CUSTOMER/BUYER name (who is being billed)
-4. TotalAmount: The final total (REQUIRED)
-
-Required JSON structure:
+### 2. REQUIRED JSON STRUCTURE
 {
-  "InvoiceNumber": "string (REQUIRED)",
-  "InvoiceDate": "string (any format, REQUIRED)",
+  "InvoiceNumber": "string (REQUIRED - map 'Bill Number' here if applicable)",
+  "InvoiceDate": "string (Normalize to YYYY-MM-DD)",
   "OrderId": "string or null",
-  "VendorName": "string (REQUIRED - company/seller name)",
+  "VendorName": "string (REQUIRED - The Seller)",
   "BillTo": {
-    "Name": "string (REQUIRED - customer name)"
+    "Name": "string (REQUIRED - The Customer)"
   },
   "ShipTo": {
     "City": "string or null",
@@ -41,11 +40,11 @@ Required JSON structure:
   "LineItems": [
     {
       "ProductName": "string (REQUIRED)",
-      "Category": "string or null",
-      "ProductId": "string (REQUIRED)",
+      "Category": "string or null (e.g., Office, Electronics)",
+      "ProductId": "string (REQUIRED - Extract SKU or generate slug from name)",
       "Quantity": number (REQUIRED),
       "UnitRate": number (REQUIRED),
-      "Amount": number (REQUIRED)"
+      "Amount": number (REQUIRED)
     }
   ],
   "Subtotal": number or null,
@@ -56,22 +55,17 @@ Required JSON structure:
   "ShippingCost": number or null,
   "TotalAmount": number (REQUIRED),
   "BalanceDue": number or null,
-  "Currency": "string (default: USD)",
+  "Currency": "string (3-letter ISO, default: USD)",
   "Notes": "string or null",
   "Terms": "string or null"
 }
 
-Rules:
-1. Return ONLY the JSON object, no markdown code blocks, no explanations
-2. VendorName is the SELLER (company issuing invoice), NOT the customer
-3. BillTo.Name is the CUSTOMER (who is being billed)
-4. All monetary values must be numbers (not strings)
-5. All quantities must be numbers
-6. If a field is not found, use null
-7. InvoiceNumber, VendorName, and TotalAmount are REQUIRED
-8. LineItems array must have at least one item
-9. Each LineItem must have ProductName, ProductId, Quantity, UnitRate, and Amount
-10. Currency defaults to "USD" if not specified"""
+### 3. EXTRACTION RULES
+1. RETURN ONLY JSON: No markdown code blocks (```), no explanations.
+2. NUMERIC CLEANING: Remove all currency symbols ($) and commas (1,500.00 -> 1500.00). Must be numbers.
+3. MULTI-LINE ITEMS: If a product description spans multiple lines, merge them into one 'ProductName'.
+4. SKU GENERATION: Every line item MUST have a ProductId. If the text doesn't provide a SKU, create one by capitalizing the product name and replacing spaces with hyphens.
+5. VALIDATION: If 'TotalAmount' is missing or unreadable, return: {"error": "Missing TotalAmount"}."""
 
     def extract_invoice(self, raw_text: str) -> InvoiceData:
         """

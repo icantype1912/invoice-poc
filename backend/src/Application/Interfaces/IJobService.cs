@@ -14,7 +14,7 @@ namespace invoice_v1.src.Application.Interfaces
         Task<bool> CanVendorAccessJobAsync(Guid jobId, Guid vendorId);
 
         Task CreateJobFromLogAsync(FileChangeLog log);
-        Task CompleteJobAsync(Guid jobId);
+        Task CompleteJobAsync(Guid jobId, JsonDocument? result = null);
         Task MarkFailedAsync(Guid jobId, JsonDocument errorDetails);
         Task MarkInvalidAsync(Guid jobId, JsonDocument reasonDetails);
         Task CreateInvalidInvoiceFromJobAsync(Guid jobId, JsonDocument reasonDetails);

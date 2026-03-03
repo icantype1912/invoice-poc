@@ -34,37 +34,43 @@ namespace invoice_v1.src.Infrastructure.Repositories
             await using var command = new NpgsqlCommand(sql, connection);
             command.CommandTimeout = 15; // hard cap — no long-running queries
 
-            _logger.LogDebug("Executing search SQL: {Sql}", sql);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            var rowCount = 0;
-            while (await reader.ReadAsync())
+            try
             {
-                // Hard cap at 500 rows regardless of what LIMIT the LLM wrote
-                if (rowCount >= 500) break;
+                await using var reader = await command.ExecuteReaderAsync();
 
-                var row = new Dictionary<string, object?>();
-                for (int i = 0; i < reader.FieldCount; i++)
+                var rowCount = 0;
+                while (await reader.ReadAsync())
                 {
-                    var colName = reader.GetName(i);
-                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                    // Hard cap at 500 rows regardless of what LIMIT the LLM wrote
+                    if (rowCount >= 500) break;
 
-                    row[colName] = value switch
+                    var row = new Dictionary<string, object?>();
+                    for (int i = 0; i < reader.FieldCount; i++)
                     {
-                        Guid g => g.ToString(),
-                        DateTime dt => dt.ToString("o"),
-                        DateTimeOffset dto => dto.ToString("o"),
-                        byte[] _ => "[binary]", // never expose raw binary
-                        _ => value
-                    };
-                }
-                results.Add(row);
-                rowCount++;
-            }
+                        var colName = reader.GetName(i);
+                        var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
 
-            _logger.LogDebug("Search query returned {Count} rows", results.Count);
-            return results;
+                        row[colName] = value switch
+                        {
+                            Guid g => g.ToString(),
+                            DateTime dt => dt.ToString("o"),
+                            DateTimeOffset dto => dto.ToString("o"),
+                            byte[] _ => "[binary]", // never expose raw binary
+                            _ => value
+                        };
+                    }
+                    results.Add(row);
+                    rowCount++;
+                }
+
+                _logger.LogDebug("Search query returned {Count} rows", results.Count);
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Search SQL execution failed. SQL: {Sql}", sql);
+                throw; // Rethrow to let the service handle/wrap it
+            }
         }
     }
 }

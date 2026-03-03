@@ -144,7 +144,7 @@ namespace invoice_v1.tests.Controllers
             // Assert
             Assert.IsType<OkObjectResult>(result);
             _mockInvoiceService.Verify(s => s.CreateOrUpdateInvoiceFromCallbackAsync(jobId, It.IsAny<JsonElement>()), Times.Once);
-            _mockJobService.Verify(s => s.CompleteJobAsync(jobId), Times.Once);
+            _mockJobService.Verify(s => s.CompleteJobAsync(jobId, It.IsAny<JsonDocument>()), Times.Once);
         }
 
         [Fact]

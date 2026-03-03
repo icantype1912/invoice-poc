@@ -1,0 +1,27 @@
+2026-02-23 10:23:08 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 10:26:06 | invoice_v1.src.Application.Services.InvoiceService | WRN | Failed to parse InvoiceDate as DateTime: 23.05.2021
+2026-02-23 11:35:48 | invoice_v1.src.Api.Controllers.AuthController | WRN | Signup failed for a@gmail.com
+System.InvalidOperationException: Email is already registered
+   at invoice_v1.src.Application.Services.AuthService.SignupAsync(SignupRequest request) in C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\backend\src\Application\Services\AuthService.cs:line 37
+   at invoice_v1.src.Api.Controllers.AuthController.Signup(SignupRequest request) in C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\backend\src\Api\Controllers\AuthController.cs:line 74
+2026-02-23 14:08:45 | invoice_v1.src.Application.Security.AdminBootstrapService | WRN | FIRST ADMIN ACCOUNT CREATED: admin@invoice.com
+2026-02-23 14:20:05 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 14:23:44 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 14:25:19 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 15:45:41 | invoice_v1.src.Application.Security.AdminBootstrapService | WRN | FIRST ADMIN ACCOUNT CREATED: admin@invoice.com
+2026-02-23 15:59:07 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 16:19:33 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 16:22:58 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 2 - MagicBytes]: Rejected | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: vs_SSMS.pdf | Reason: File content does not match PDF magic bytes (%PDF)
+2026-02-23 16:22:58 | invoice_v1.src.Application.Services.VendorInvoiceService | WRN | SECURITY: File vs_SSMS.pdf from vendor "5a66e885-77a8-4853-96bd-55d91dc5af7e" marked UNHEALTHY. Reason: File content does not match PDF magic bytes (%PDF)
+2026-02-23 16:24:57 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 2 - MagicBytes]: Rejected | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: vs_SSMS.pdf | Reason: File content does not match PDF magic bytes (%PDF)
+2026-02-23 16:24:57 | invoice_v1.src.Application.Services.VendorInvoiceService | WRN | SECURITY: File vs_SSMS.pdf from vendor "5a66e885-77a8-4853-96bd-55d91dc5af7e" marked UNHEALTHY. Reason: File content does not match PDF magic bytes (%PDF)
+2026-02-23 17:05:15 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 17:05:27 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 2 - MagicBytes]: Rejected | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: SQL2025-SSEI-Expr.pdf | Reason: File content does not match PDF magic bytes (%PDF)
+2026-02-23 17:05:27 | invoice_v1.src.Application.Services.VendorInvoiceService | WRN | SECURITY: File SQL2025-SSEI-Expr.pdf from vendor "5a66e885-77a8-4853-96bd-55d91dc5af7e" marked UNHEALTHY. Reason: File content does not match PDF magic bytes (%PDF)
+2026-02-23 17:26:37 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 17:26:49 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 1 - FileType]: BYPASSED (testing mode) | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: VisualStudioSetup.pdf
+2026-02-23 17:26:49 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 2 - MagicBytes]: BYPASSED (testing mode) | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: VisualStudioSetup.pdf
+2026-02-23 17:28:18 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 1 - FileType]: BYPASSED (testing mode) | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: VisualStudioSetup.pdf
+2026-02-23 17:28:18 | invoice_v1.src.Application.Security.FileSecurityPipeline | WRN | SECURITY [Layer 2 - MagicBytes]: BYPASSED (testing mode) | Vendor: "5a66e885-77a8-4853-96bd-55d91dc5af7e" | File: VisualStudioSetup.pdf
+2026-02-23 17:31:56 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.
+2026-02-23 17:40:56 | Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware | WRN | Failed to determine the https port for redirect.

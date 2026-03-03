@@ -154,60 +154,55 @@ namespace invoice_v1.src.Application.Services
                 };
             }
 
-            // ── Layer 3: LLM generates SQL (with one retry on validation failure) ──
+            // ── Layer 3: LLM generates SQL ──
             string sql = string.Empty;
-            string? firstRejectionReason = null;
 
-            for (int attempt = 1; attempt <= 2; attempt++)
+            try
             {
-                try
-                {
-                    sql = await GenerateSqlAsync(
-                        sanitisedQuery,
-                        vendorId,
-                        isVendor: vendorId.HasValue,
-                        priorRejectionReason: attempt == 2 ? firstRejectionReason : null);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex,
-                        "LLM SQL generation failed (attempt {Attempt}) for user {UserId}",
-                        attempt, userId);
-                    return new SearchResultDto
-                    {
-                        NaturalLanguageQuery = query,
-                        Error = "Could not generate a query from your input. Please try rephrasing."
-                    };
-                }
-
-                // ── Layer 4: SQL security validation ──────────────────────────
-                var (isValid, rejectionReason) = SearchSecurityValidator.ValidateSql(
-                    sql,
+                sql = await GenerateSqlAsync(
+                    sanitisedQuery,
+                    vendorId,
                     isVendor: vendorId.HasValue,
-                    vendorId: vendorId);
-
-                if (!isValid)
+                    priorRejectionReason: null);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                _logger.LogError("LLM SQL generation failed due to rate limiting (429).");
+                return new SearchResultDto
                 {
-                    _logger.LogWarning(
-                        "Generated SQL rejected (attempt {Attempt}) for user {UserId}. Reason: {Reason}. SQL: {Sql}",
-                        attempt, userId, rejectionReason, sql);
+                    NaturalLanguageQuery = query,
+                    Error = "The AI service is currently overwhelmed. Please wait a moment and try again."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "LLM SQL generation failed for user {UserId}", userId);
+                return new SearchResultDto
+                {
+                    NaturalLanguageQuery = query,
+                    Error = "Could not generate a query from your input. Please try rephrasing."
+                };
+            }
 
-                    if (attempt == 1)
-                    {
-                        firstRejectionReason = rejectionReason;
-                        continue; // retry with rejection reason fed back to LLM
-                    }
+            // ── Layer 4: SQL security validation ──────────────────────────
+            var (isValid, rejectionReason, isRetryable) = SearchSecurityValidator.ValidateSql(
+                sql,
+                isVendor: vendorId.HasValue,
+                vendorId: vendorId);
 
-                    return new SearchResultDto
-                    {
-                        NaturalLanguageQuery = query,
-                        GeneratedSql = sql,
-                        SecurityRejectionReason = rejectionReason,
-                        Error = rejectionReason
-                    };
-                }
+            if (!isValid)
+            {
+                _logger.LogWarning(
+                    "Generated SQL rejected for user {UserId}. Reason: {Reason}. SQL: {Sql}",
+                    userId, rejectionReason, sql);
 
-                break; // validation passed
+                return new SearchResultDto
+                {
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = sql,
+                    SecurityRejectionReason = rejectionReason,
+                    Error = rejectionReason ?? "Search could not be completed."
+                };
             }
 
             // ── Layer 5: Execute via read-only repository ─────────────────────
@@ -277,8 +272,9 @@ namespace invoice_v1.src.Application.Services
                   The vendor id '{vendorId}' MUST appear literally in the WHERE clause.
                   """
                 : """
-
-                  This request is from an Admin. You may query all tables.
+                  This request is from an Admin. You have UNRESTRICTED access to ALL data across ALL vendors and users.
+                  Do NOT apply any vendor-specific where clauses unless the user explicitly asks for a single vendor.
+                  You can see everything. Use your full capability to answer the question.
                   NEVER select PasswordHash or PasswordSalt columns under any circumstances.
                   """;
 
@@ -303,7 +299,7 @@ namespace invoice_v1.src.Application.Services
                    nothing before or after the SQL statement.
                 2. Only SELECT statements are allowed. Never use INSERT, UPDATE, DELETE,
                    DROP, TRUNCATE, ALTER, CREATE, GRANT, UNION, EXEC, COPY.
-                3. Always include LIMIT (default 50, max 200). Never use LIMIT 0.
+                3. Always include LIMIT (default 50, max 5000). Never use LIMIT 0.
                 4. Never select PasswordHash or PasswordSalt.
                 5. Use table aliases. ALWAYS wrap ALL column names in double-quotes — e.g.
                    "Id", "ProductName", "UploadedByVendorId", "InvoiceId", "ProductGuid",
@@ -410,8 +406,8 @@ namespace invoice_v1.src.Application.Services
             // 8. Fix SELECT DISTINCT + ORDER BY column mismatch
             rawSql = FixDistinctOrderBy(rawSql);
 
-            // 9. Clamp LIMIT to safe range (1–200)
-            rawSql = ClampLimit(rawSql);
+            // 9. Clamp LIMIT to safe range (1–5000)
+            rawSql = ClampLimit(rawSql, isVendor ? 200 : 5000);
 
             _logger.LogInformation("Generated SQL: {Sql}", rawSql);
 
@@ -542,15 +538,19 @@ namespace invoice_v1.src.Application.Services
 
         // ── Clamp LIMIT to safe range (1–200) ────────────────────────────────
 
-        private static string ClampLimit(string sql)
+        private static string ClampLimit(string sql, int max = 5000)
         {
+            if (!Regex.IsMatch(sql, @"\bLIMIT\s+\d+\b", RegexOptions.IgnoreCase))
+            {
+                return sql.TrimEnd() + " LIMIT 50";
+            }
             return Regex.Replace(sql,
                 @"\bLIMIT\s+(\d+)\b",
                 m =>
                 {
                     var val = int.Parse(m.Groups[1].Value);
                     if (val <= 0) val = 50;
-                    if (val > 200) val = 200;
+                    if (val > max) val = max;
                     return $"LIMIT {val}";
                 },
                 RegexOptions.IgnoreCase);

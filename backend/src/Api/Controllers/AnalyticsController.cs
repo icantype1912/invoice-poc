@@ -27,7 +27,8 @@ namespace invoice_v1.src.Api.Controllers
         public async Task<IActionResult> GetProductSales(
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
-            [FromQuery] string? category = null)
+            [FromQuery] string? category = null,
+            [FromQuery] Guid? vendorId = null)
         {
             if (startDate > endDate)
             {
@@ -39,13 +40,14 @@ namespace invoice_v1.src.Api.Controllers
                 return BadRequest(new { error = "endDate cannot be in the future" });
             }
 
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
             var results = await _analyticsService.GetProductSalesByDateRangeAsync(
                 startDate,
                 endDate,
                 category,
-                vendorId);
+                filterId);
 
             return Ok(results);
         }
@@ -55,7 +57,8 @@ namespace invoice_v1.src.Api.Controllers
         public async Task<IActionResult> GetTrendingProducts(
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
-            [FromQuery] int topN = 10)
+            [FromQuery] int topN = 10,
+            [FromQuery] Guid? vendorId = null)
         {
             if (startDate > endDate)
             {
@@ -77,13 +80,14 @@ namespace invoice_v1.src.Api.Controllers
                 return BadRequest(new { error = "topN cannot exceed 100" });
             }
 
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
             var results = await _analyticsService.GetTrendingProductsAsync(
                 startDate,
                 endDate,
                 topN,
-                vendorId);
+                filterId);
 
             return Ok(results);
         }
@@ -92,7 +96,8 @@ namespace invoice_v1.src.Api.Controllers
         [ProducesResponseType(typeof(List<CategorySalesDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCategorySales(
             [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate)
+            [FromQuery] DateTime endDate,
+            [FromQuery] Guid? vendorId = null)
         {
             if (startDate > endDate)
             {
@@ -104,12 +109,13 @@ namespace invoice_v1.src.Api.Controllers
                 return BadRequest(new { error = "endDate cannot be in the future" });
             }
 
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
             var results = await _analyticsService.GetCategorySalesAsync(
                 startDate,
                 endDate,
-                vendorId);
+                filterId);
 
             return Ok(results);
         }
@@ -120,7 +126,8 @@ namespace invoice_v1.src.Api.Controllers
             string productId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
-            [FromQuery] TimeGranularity granularity = TimeGranularity.Monthly)
+            [FromQuery] TimeGranularity granularity = TimeGranularity.Monthly,
+            [FromQuery] Guid? vendorId = null)
         {
             if (string.IsNullOrWhiteSpace(productId))
             {
@@ -137,14 +144,45 @@ namespace invoice_v1.src.Api.Controllers
                 return BadRequest(new { error = "endDate cannot be in the future" });
             }
 
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
             var results = await _analyticsService.GetProductTimeSeriesAsync(
                 productId,
                 startDate,
                 endDate,
                 granularity,
-                vendorId);
+                filterId);
+
+            return Ok(results);
+        }
+
+        [HttpGet("revenue/trend")]
+        [ProducesResponseType(typeof(List<RevenueTrendDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetRevenueTrend(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] TimeGranularity granularity = TimeGranularity.Monthly,
+            [FromQuery] Guid? vendorId = null)
+        {
+            if (startDate > endDate)
+            {
+                return BadRequest(new { error = "startDate cannot be after endDate" });
+            }
+
+            if (endDate > DateTime.UtcNow.AddDays(1))
+            {
+                return BadRequest(new { error = "endDate cannot be in the future" });
+            }
+
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
+
+            var results = await _analyticsService.GetRevenueTrendAsync(
+                startDate,
+                endDate,
+                granularity,
+                filterId);
 
             return Ok(results);
         }

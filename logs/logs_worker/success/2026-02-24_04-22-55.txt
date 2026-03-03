@@ -1,0 +1,5 @@
+2026-02-24 09:52:55 | app.utils.file_logger | INFO | File logging initialized → C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\logs\logs_worker (run: 2026-02-24_04-22-55)
+2026-02-24 09:52:55 | app.worker | INFO | Initializing worker services...
+2026-02-24 09:52:55 | app.database.job_claimer | INFO | Database connection established
+2026-02-24 09:52:55 | app.worker | INFO | ✓ Database connected
+2026-02-24 09:52:55 | app.main | INFO | FastAPI app stopped

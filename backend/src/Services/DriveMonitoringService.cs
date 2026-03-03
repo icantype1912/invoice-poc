@@ -321,7 +321,9 @@ namespace invoice_v1.src.Services
                         DetectedAt = DateTime.UtcNow,
                         ModifiedBy = lastLog?.ModifiedBy ?? "System",
                         UploadedByVendorId = lastLog?.UploadedByVendorId,
-                        Processed = true
+                        Processed = true,
+                        SecurityStatus = "N/A",
+                        SecurityCheckedAt = DateTime.UtcNow
                     };
 
                     dbContext.FileChangeLogs.Add(changeLog);

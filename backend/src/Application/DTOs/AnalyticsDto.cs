@@ -42,4 +42,10 @@
         public decimal Revenue { get; set; }
         public int InvoiceCount { get; set; }
     }
+    public class RevenueTrendDto
+    {
+        public DateTime Period { get; set; }
+        public decimal Revenue { get; set; }
+        public int InvoiceCount { get; set; }
+    }
 }

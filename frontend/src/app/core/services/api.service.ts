@@ -171,6 +171,7 @@ export type JobQueueItem = {
   createdAt: string;
   updatedAt: string;
   payloadJson: any;
+  resultJson: any;
   errorMessage: any;
 };
 
@@ -190,13 +191,16 @@ export class ApiService {
   constructor(private http: HttpClient) { }
 
   // ----------------------------- LOGS ------------------------------
-  getLogs(page = 1, pageSize = 50, changeType?: string): Observable<LogsResponse> {
+  getLogs(page = 1, pageSize = 50, changeType?: string, vendorId?: string): Observable<LogsResponse> {
     const url = joinUrl(this.baseUrl, 'logs');
     let params = new HttpParams()
       .set('page', String(page))
       .set('pageSize', String(pageSize));
     if (changeType) {
       params = params.set('changeType', changeType);
+    }
+    if (vendorId) {
+      params = params.set('vendorId', vendorId);
     }
     return this.http.get<LogsResponse>(url, { params });
   }
@@ -207,7 +211,7 @@ export class ApiService {
   }
 
   // ----------------------------- PRODUCTS ------------------------------
-  getProducts(page = 1, pageSize = 50, category?: string, search?: string): Observable<ProductsResponse> {
+  getProducts(page = 1, pageSize = 50, category?: string, search?: string, vendorId?: string): Observable<ProductsResponse> {
     const url = joinUrl(this.baseUrl, 'products');
     let params = new HttpParams()
       .set('page', String(page))
@@ -218,6 +222,9 @@ export class ApiService {
     if (search) {
       params = params.set('search', search);
     }
+    if (vendorId) {
+      params = params.set('vendorId', vendorId);
+    }
     return this.http.get<ProductsResponse>(url, { params });
   }
 
@@ -227,11 +234,14 @@ export class ApiService {
   }
 
   // ----------------------------- INVOICES ------------------------------
-  getInvoices(page = 1, pageSize = 20): Observable<InvoicesResponse> {
+  getInvoices(page = 1, pageSize = 20, vendorId?: string): Observable<InvoicesResponse> {
     const url = joinUrl(this.baseUrl, 'invoices');
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('page', String(page))
       .set('pageSize', String(pageSize));
+    if (vendorId) {
+      params = params.set('vendorId', vendorId);
+    }
     return this.http.get<InvoicesResponse>(url, { params });
   }
 

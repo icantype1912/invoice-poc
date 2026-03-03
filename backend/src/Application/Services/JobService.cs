@@ -122,12 +122,13 @@ namespace invoice_v1.src.Application.Services
             // no push notification needed.
         }
 
-        public async Task CompleteJobAsync(Guid jobId)
+        public async Task CompleteJobAsync(Guid jobId, JsonDocument? result = null)
         {
             var job = await _jobQueueRepository.GetByIdAsync(jobId);
             if (job == null) throw new InvalidOperationException($"Job {jobId} not found");
 
             job.Status = nameof(JobStatus.COMPLETED);
+            job.ResultJson = result;
             job.UpdatedAt = DateTime.UtcNow;
 
             // Cleanup locks
@@ -288,6 +289,7 @@ namespace invoice_v1.src.Application.Services
                 Status = job.Status,
                 PayloadJson = job.PayloadJson,
                 ErrorMessage = job.ErrorMessage,
+                ResultJson = job.ResultJson,
                 RetryCount = job.RetryCount,
                 LockedBy = job.LockedBy,
                 LockedAt = job.LockedAt,

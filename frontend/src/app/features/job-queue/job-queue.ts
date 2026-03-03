@@ -1,17 +1,23 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { ApiService, JobQueueItem, JobStatus } from '../../core/services/api.service';
 import { Auth } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
+type Vendor = { id: string; email: string; companyName?: string; role: number };
 
 @Component({
   selector: 'app-job-queue',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './job-queue.html',
   styleUrls: ['./job-queue.css']
 })
 export class JobQueue implements OnInit {
   private api = inject(ApiService);
+  private http = inject(HttpClient);
   public auth = inject(Auth);
   get isAdmin() { return this.auth.isAdmin; }
 
@@ -26,7 +32,28 @@ export class JobQueue implements OnInit {
   selectedJob = signal<JobQueueItem | null>(null);
   statusFilter = signal<JobStatus | null>(null);
 
+  // Issue #10: Raw JSON popup for completed jobs
+  rawJsonJob = signal<JobQueueItem | null>(null);
+
+  // Issue #8: Admin vendor filter
+  vendors = signal<Vendor[]>([]);
+  selectedVendorId = signal<string>('');
+
   ngOnInit(): void {
+    if (this.isAdmin) this.loadVendors();
+    this.loadJobs();
+  }
+
+  loadVendors(): void {
+    this.http.get<Vendor[]>(`${environment.apiUrl}/admin/users`).subscribe({
+      next: (users) => this.vendors.set((users || []).filter(u => u.role === 1)),
+      error: () => { }
+    });
+  }
+
+  onVendorChange(event: Event): void {
+    this.selectedVendorId.set((event.target as HTMLSelectElement).value);
+    this.page.set(1);
     this.loadJobs();
   }
 
@@ -34,7 +61,16 @@ export class JobQueue implements OnInit {
     const status = this.statusFilter() ?? undefined;
     this.api.getJobs(this.page(), this.pageSize, status).subscribe({
       next: (res) => {
-        this.jobs.set(res.jobs ?? []);
+        let jobs = res.jobs ?? [];
+        // Issue #8: Filter by vendor on the client side if admin has selected a vendor
+        const vendorId = this.selectedVendorId();
+        if (this.isAdmin && vendorId) {
+          jobs = jobs.filter(j => {
+            const payload = typeof j.payloadJson === 'string' ? JSON.parse(j.payloadJson) : j.payloadJson;
+            return payload?.uploader === vendorId;
+          });
+        }
+        this.jobs.set(jobs);
         this.total.set(res.total ?? 0);
         this.selectedJob.set(null);
       },
@@ -78,16 +114,20 @@ export class JobQueue implements OnInit {
     return String(err);
   }
 
-  getPayloadEntries(payload: any): any[] {
-    if (!payload) return [];
+  getPayloadEntries(job: JobQueueItem | null): any[] {
+    if (!job) return [];
     try {
-      const data = typeof payload === 'string' ? JSON.parse(payload) : payload;
+      // Prefer resultJson for COMPLETED jobs, otherwise use payloadJson
+      const data = (job.status === 'COMPLETED' && job.resultJson)
+        ? (typeof job.resultJson === 'string' ? JSON.parse(job.resultJson) : job.resultJson)
+        : (typeof job.payloadJson === 'string' ? JSON.parse(job.payloadJson) : job.payloadJson);
+
       return Object.entries(data).map(([key, value]) => ({
         key: this.formatKey(key),
         value: typeof value === 'object' ? JSON.stringify(value) : value
       }));
     } catch (e) {
-      return [{ key: 'Data', value: String(payload) }];
+      return [{ key: 'Data', value: String(job.payloadJson) }];
     }
   }
 
@@ -102,6 +142,7 @@ export class JobQueue implements OnInit {
     this.loadJobs();
   }
 
+  // Issue #2: Vendor click shows limited info; admin click shows full details
   viewJob(id: string): void {
     this.api.getJobById(id).subscribe({
       next: (res) => {
@@ -115,6 +156,18 @@ export class JobQueue implements OnInit {
 
   closeJob(): void {
     this.selectedJob.set(null);
+  }
+
+  // Issue #10: Show raw JSON popup for completed jobs
+  showRawJson(job: JobQueueItem, event: Event): void {
+    event.stopPropagation();
+    if (job.status === 'COMPLETED') {
+      this.rawJsonJob.set(job);
+    }
+  }
+
+  closeRawJson(): void {
+    this.rawJsonJob.set(null);
   }
 
   requeueJob(id: string): void {
@@ -151,3 +204,4 @@ export class JobQueue implements OnInit {
     return JSON.stringify(obj, null, 2);
   }
 }
+

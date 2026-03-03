@@ -62,7 +62,9 @@ namespace invoice_v1.src.Application.Services
                 @"\bDELETE\s+FROM\b",
                 @"\bINSERT\s+INTO\b",
                 @"\bUPDATE\s+\w+\s+SET\b",
-                @"\bUNION\s+SELECT\b"
+                @"\bUNION\s+SELECT\b",
+                @"\bFROM\s+""?Users""?\b",
+                @"\bSELECT\s+.*?\bFROM\s+""?Users""?\b"
             };
 
             foreach (var pattern in suspiciousInputPatterns)
@@ -79,44 +81,44 @@ namespace invoice_v1.src.Application.Services
 
         /// <summary>
         /// Full security validation of LLM-generated SQL.
-        /// Returns (true, null) if safe, (false, reason) if rejected.
+        /// Returns (true, null, true) if safe.
+        /// Returns (false, reason, isRetryable) if rejected.
         /// </summary>
-        public static (bool IsValid, string? Reason) ValidateSql(
+        public static (bool IsValid, string? Reason, bool IsRetryable) ValidateSql(
             string sql,
             bool isVendor,
             Guid? vendorId)
         {
             if (string.IsNullOrWhiteSpace(sql))
-                return (false, "Generated SQL is empty.");
+                return (false, "Generated SQL is empty.", true);
 
             var normalised = sql.Trim();
 
             // 1. Must be a SELECT
             if (!normalised.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
-                return (false, "Only SELECT queries are permitted.");
+                return (false, "Only SELECT queries are permitted.", true);
 
             // 2. Must not contain multiple statements
-            // Strip string literals first to avoid false positives on semicolons in strings
             var stripped = Regex.Replace(normalised, @"'[^']*'", "''");
             var statementCount = stripped.Count(c => c == ';');
             if (statementCount > 1)
-                return (false, "Only a single SQL statement is permitted.");
+                return (false, "Only a single SQL statement is permitted.", true);
 
-            // 3. Dangerous keyword blocklist
+            // 3. Dangerous keyword blocklist (HARD VIOLATION)
             foreach (var pattern in BlockedSqlPatterns)
             {
                 if (Regex.IsMatch(normalised, pattern, RegexOptions.IgnoreCase))
-                    return (false, "Query contains disallowed SQL construct.");
+                    return (false, "Query contains disallowed SQL construct.", false);
             }
 
-            // 4. Sensitive columns must never appear
+            // 4. Sensitive columns must never appear (HARD VIOLATION)
             foreach (var col in BlockedColumns)
             {
                 if (normalised.Contains(col, StringComparison.OrdinalIgnoreCase))
-                    return (false, "Query references a restricted column.");
+                    return (false, "Query references a restricted column.", false);
             }
 
-            // 5. Vendors cannot query the Users table at all
+            // 5. Vendors cannot query the Users table at all (HARD VIOLATION)
             if (isVendor)
             {
                 foreach (var table in VendorBlockedTables)
@@ -125,19 +127,20 @@ namespace invoice_v1.src.Application.Services
                         $@"\b{Regex.Escape(table)}\b",
                         RegexOptions.IgnoreCase))
                     {
-                        return (false, "Access to requested data is not permitted.");
+                        return (false, "Access to requested data is not permitted.", false);
                     }
                 }
             }
 
-            // 6. Vendor scope check — vendorId must appear literally in the SQL
+            // 6. Vendor scope check (HARD VIOLATION)
             if (isVendor && vendorId.HasValue)
             {
                 var vendorIdStr = vendorId.Value.ToString();
                 if (!normalised.Contains(vendorIdStr, StringComparison.OrdinalIgnoreCase))
                 {
                     return (false,
-                        "Search could not be completed. Try rephrasing — for example: 'show my invoices' or 'show my products'.");
+                        "Search could not be completed. Try rephrasing — for example: 'show my invoices' or 'show my products'.",
+                        false);
                 }
 
                 // Products table has no vendor column — must join through invoices
@@ -146,20 +149,22 @@ namespace invoice_v1.src.Application.Services
                 if (queriesProducts && !joinsInvoices)
                 {
                     return (false,
-                        "Search could not be completed. Try rephrasing — for example: 'show my products' or 'what products have I sold'.");
+                        "Search could not be completed. Try rephrasing — for example: 'show my products' or 'what products have I sold'.",
+                        false);
                 }
             }
 
-            // 7. Must contain LIMIT with a sane value (1–200)
+            // 7. Must contain LIMIT (SOFT VIOLATION - we auto-inject, but if it's missing or wrong, it's retryable)
             var limitMatch = Regex.Match(normalised, @"\bLIMIT\s+(\d+)\b", RegexOptions.IgnoreCase);
             if (!limitMatch.Success)
-                return (false, "Generated query is missing a LIMIT clause.");
+                return (false, "Generated query is missing a LIMIT clause.", true);
 
             var limitVal = int.Parse(limitMatch.Groups[1].Value);
-            if (limitVal <= 0 || limitVal > 200)
-                return (false, "Generated query has an invalid LIMIT value.");
+            var maxAllowed = isVendor ? 200 : 5000;
+            if (limitVal <= 0 || limitVal > maxAllowed)
+                return (false, $"Generated query has an invalid LIMIT value (max {maxAllowed}).", true);
 
-            return (true, null);
+            return (true, null, true);
         }
     }
 }

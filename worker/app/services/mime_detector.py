@@ -9,6 +9,8 @@ class ProcessingPipeline(str, Enum):
     """Available processing pipelines."""
     IMAGE = "image"
     PDF = "pdf"
+    CSV = "csv"
+    DOCX = "docx"
     UNSUPPORTED = "unsupported"
 
 
@@ -42,6 +44,10 @@ def validate_mime_type(detected: str, expected: str) -> bool:
         'application/pdf': ['application/pdf'],
         'image/jpeg': ['image/jpeg', 'image/jpg'],
         'image/png': ['image/png'],
+        'text/csv': ['text/csv', 'application/csv'],
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ],
     }
 
     # Check if both are in same alias group
@@ -70,5 +76,9 @@ def get_pipeline_for_mime(mime_type: str) -> ProcessingPipeline:
         return ProcessingPipeline.IMAGE
     elif mime_type == 'application/pdf':
         return ProcessingPipeline.PDF
+    elif mime_type in ['text/csv', 'application/csv']:
+        return ProcessingPipeline.CSV
+    elif mime_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return ProcessingPipeline.DOCX
     else:
         return ProcessingPipeline.UNSUPPORTED

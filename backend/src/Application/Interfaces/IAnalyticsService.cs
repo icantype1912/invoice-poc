@@ -28,5 +28,11 @@ namespace invoice_v1.src.Application.Interfaces
             DateTime endDate,
             TimeGranularity granularity = TimeGranularity.Monthly,
             Guid? vendorId = null);
+
+        Task<List<RevenueTrendDto>> GetRevenueTrendAsync(
+            DateTime startDate,
+            DateTime endDate,
+            TimeGranularity granularity = TimeGranularity.Monthly,
+            Guid? vendorId = null);
     }
 }

@@ -1,0 +1,5 @@
+2026-02-27 15:42:05 | app.worker | WARNING | [dc7de07c-654c-44b4-9ee0-3326e121a5ed] 🔄 Scheduling retry 1/3 in 2 minutes (at 10:14:05 UTC)
+2026-02-27 15:44:29 | app.worker | WARNING | [dc7de07c-654c-44b4-9ee0-3326e121a5ed] 🔄 Scheduling retry 2/3 in 4 minutes (at 10:18:29 UTC)
+2026-02-27 15:49:00 | app.worker | WARNING | [dc7de07c-654c-44b4-9ee0-3326e121a5ed] 🔄 Scheduling retry 3/3 in 8 minutes (at 10:27:00 UTC)
+2026-02-27 15:57:26 | app.services.drive_service | WARNING | Connection broken during chunk download: EOF occurred in violation of protocol (_ssl.c:2427)
+2026-02-27 15:57:26 | app.services.drive_service | WARNING | Download failed for 179XRVy7ChkxMApp6xjiyvJl9qSb74aGh (Attempt 1): EOF occurred in violation of protocol (_ssl.c:2427)

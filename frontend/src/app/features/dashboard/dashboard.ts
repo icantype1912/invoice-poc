@@ -7,6 +7,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AnalyticsService, CategorySales, ProductTrend, ProductSales } from '../../core/services/analytics.service';
 import { Auth } from '../../core/services/auth';
+import { ChatbotService } from '../../core/services/chatbot.service';
 import { forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -29,13 +30,13 @@ type RecentInvoice = {
 };
 
 type AskMessage = {
-  id:       number;
+  id: number;
   question: string;
-  answer:   string;
-  loading:  boolean;
-  error:    boolean;
-  rows:     Record<string, unknown>[] | null;
-  columns:  string[];
+  answer: string;
+  loading: boolean;
+  error: boolean;
+  rows: Record<string, unknown>[] | null;
+  columns: string[];
 };
 
 @Component({
@@ -48,21 +49,23 @@ type AskMessage = {
 export class Dashboard implements OnInit, OnDestroy {
 
   private analyticsService = inject(AnalyticsService);
-  private auth             = inject(Auth);
-  private http             = inject(HttpClient);
+  private auth = inject(Auth);
+  private http = inject(HttpClient);
+  public chatbotService = inject(ChatbotService);
 
   get isAdmin(): boolean { return this.auth.isAdmin; }
+  get chatOpen(): boolean { return this.chatbotService.isOpen(); }
 
   // ── State ────────────────────────────────────────────────────────────
-  categorySales    = signal<CategorySales[]>([]);
+  categorySales = signal<CategorySales[]>([]);
   trendingProducts = signal<ProductTrend[]>([]);
-  productSales     = signal<ProductSales[]>([]);
-  recentInvoices   = signal<RecentInvoice[]>([]);
-  isLoading        = signal(true);
-  selectedRange    = signal<'30d' | '90d' | '12m' | 'all'>('all');
+  productSales = signal<ProductSales[]>([]);
+  recentInvoices = signal<RecentInvoice[]>([]);
+  isLoading = signal(true);
+  selectedRange = signal<'30d' | '90d' | '12m' | 'all'>('all');
 
   // Admin vendor filter
-  vendors          = signal<Vendor[]>([]);
+  vendors = signal<Vendor[]>([]);
   selectedVendorId = signal<string>('');
 
   // Table tabs
@@ -72,9 +75,9 @@ export class Dashboard implements OnInit, OnDestroy {
   totalInvoiceCount = signal<number>(0);
 
   // ── Ask Your Data state ──────────────────────────────────────────────
-  askMessages      = signal<AskMessage[]>([]);
-  askLoading       = signal(false);
-  askQuery         = '';
+  askMessages = signal<AskMessage[]>([]);
+  askLoading = signal(false);
+  askQuery = '';
   private askIdCounter = 0;
 
   readonly askSuggestions = [
@@ -123,10 +126,10 @@ export class Dashboard implements OnInit, OnDestroy {
 
   // ── ViewChild refs ───────────────────────────────────────────────────
   @ViewChild('donutContainer') donutContainer!: ElementRef;
-  @ViewChild('barContainer')   barContainer!:   ElementRef;
-  @ViewChild('lineContainer')  lineContainer!:  ElementRef;
-  @ViewChild('askHistory')     askHistoryEl!:   ElementRef;
-  @ViewChild('askInput')       askInputEl!:     ElementRef;
+  @ViewChild('barContainer') barContainer!: ElementRef;
+  @ViewChild('lineContainer') lineContainer!: ElementRef;
+  @ViewChild('askHistory') askHistoryEl!: ElementRef;
+  @ViewChild('askInput') askInputEl!: ElementRef;
 
   private resizeListener = () => {
     if (!this.isLoading() && this.categorySales().length > 0) {
@@ -163,7 +166,7 @@ export class Dashboard implements OnInit, OnDestroy {
   loadVendors(): void {
     this.http.get<Vendor[]>(`${environment.apiUrl}/admin/users`).subscribe({
       next: (users) => this.vendors.set((users || []).filter(u => u.role === 1)),
-      error: () => {}
+      error: () => { }
     });
   }
 
@@ -198,8 +201,8 @@ export class Dashboard implements OnInit, OnDestroy {
 
     forkJoin({
       categories: this.analyticsService.getCategorySales(startDate, endDate, vendorId),
-      trending:   this.analyticsService.getTrendingProducts(startDate, endDate, 10, vendorId),
-      products:   this.analyticsService.getProductSales(startDate, endDate, undefined, vendorId),
+      trending: this.analyticsService.getTrendingProducts(startDate, endDate, 10, vendorId),
+      products: this.analyticsService.getProductSales(startDate, endDate, undefined, vendorId),
     }).subscribe({
       next: (res) => {
         this.categorySales.set(res.categories || []);
@@ -256,11 +259,11 @@ export class Dashboard implements OnInit, OnDestroy {
     const msg: AskMessage = {
       id,
       question: q,
-      answer:   '',
-      loading:  true,
-      error:    false,
-      rows:     null,
-      columns:  [],
+      answer: '',
+      loading: true,
+      error: false,
+      rows: null,
+      columns: [],
     };
 
     this.askMessages.update(msgs => [...msgs, msg]);
@@ -284,13 +287,13 @@ export class Dashboard implements OnInit, OnDestroy {
         this.askMessages.update(msgs =>
           msgs.map(m => m.id === id
             ? {
-                ...m,
-                loading: false,
-                error:   isError,
-                rows:    hasRows && !isError ? rows : null,
-                columns: hasRows && !isError ? Object.keys(rows[0]) : [],
-                answer,
-              }
+              ...m,
+              loading: false,
+              error: isError,
+              rows: hasRows && !isError ? rows : null,
+              columns: hasRows && !isError ? Object.keys(rows[0]) : [],
+              answer,
+            }
             : m
           )
         );
@@ -339,59 +342,34 @@ export class Dashboard implements OnInit, OnDestroy {
     const vendorId = this.isAdmin ? (this.selectedVendorId() || undefined) : undefined;
     const range = this.selectedRange();
 
-    const fetchGranularity = 'Daily';
+    const fetchGranularity = range === '30d' ? 'Daily' : range === '90d' ? 'Weekly' : 'Monthly';
     const displayGranularity = range === '30d' ? 'daily' : range === '90d' ? 'weekly' : 'monthly';
 
-    const allProducts = this.productSales();
-    if (!allProducts.length) return;
-
-    const products = allProducts.slice(0, 30);
-    const requests = products.map(p =>
-      this.analyticsService.getProductTimeSeries(p.productId, startDate, endDate, fetchGranularity, vendorId)
-    );
-
-    forkJoin(requests).subscribe({
-      next: (allSeries) => {
-        const periodMap: Record<string, { period: Date; revenue: number; invoices: number }> = {};
-
-        allSeries.forEach((series) => {
-          (series || []).forEach(pt => {
-            const actualDate = new Date(pt.period);
-            const key = this.getPeriodKey(actualDate, displayGranularity);
-
-            if (periodMap[key]) {
-              periodMap[key].revenue  += pt.revenue;
-              periodMap[key].invoices  = Math.max(periodMap[key].invoices, pt.invoiceCount);
-            } else {
-              periodMap[key] = {
-                period:   actualDate,
-                revenue:  pt.revenue,
-                invoices: pt.invoiceCount
-              };
-            }
-          });
-        });
-
-        const mapped = Object.values(periodMap)
-          .sort((a, b) => a.period.getTime() - b.period.getTime());
+    this.analyticsService.getRevenueTrend(startDate, endDate, fetchGranularity, vendorId).subscribe({
+      next: (trend) => {
+        const mapped = (trend || []).map(t => ({
+          period: new Date(t.period),
+          revenue: t.revenue,
+          invoices: t.invoiceCount
+        })).sort((a, b) => a.period.getTime() - b.period.getTime());
 
         if (!mapped.length) return;
         setTimeout(() => this.renderLine(mapped, displayGranularity), 50);
       },
-      error: () => {}
+      error: () => { }
     });
   }
 
   private getPeriodKey(date: Date, granularity: string): string {
     switch (granularity) {
-      case 'daily':   return date.toISOString().slice(0, 10);
+      case 'daily': return date.toISOString().slice(0, 10);
       case 'weekly': {
         const d = new Date(date);
         d.setDate(d.getDate() - d.getDay());
         return d.toISOString().slice(0, 10);
       }
       case 'monthly': return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      default:        return date.toISOString().slice(0, 10);
+      default: return date.toISOString().slice(0, 10);
     }
   }
 
@@ -448,11 +426,10 @@ export class Dashboard implements OnInit, OnDestroy {
 
     const makeArc = (inner: number, outer: number) =>
       d3.arc().innerRadius(inner).outerRadius(outer).cornerRadius(5).padAngle(0.028);
-    const arc  = makeArc(R * 0.54, R);
+    const arc = makeArc(R * 0.54, R);
     const arcH = makeArc(R * 0.54, R + 10);
-    const pie  = d3.pie().value((d: CategorySales) => d.totalRevenue).sort(null);
+    const pie = d3.pie().value((d: CategorySales) => d.totalRevenue).sort(null);
 
-    d3.selectAll('.dash-tooltip').remove();
     const tip = this.makeTip(d3);
 
     const pieData = pie(data);
@@ -471,24 +448,26 @@ export class Dashboard implements OnInit, OnDestroy {
       .attr('fill', 'transparent')
       .style('cursor', 'pointer')
       .on('mouseover', (event: any, d: any) => {
-        svg.selectAll('.bar')
+        svg.selectAll('.slice')
           .filter((_: any, i: number) => i === pieData.indexOf(d))
-          .transition().duration(150).attr('d', (dd: any) => arcH(dd));
+          .transition().duration(50).attr('d', (dd: any) => arcH(dd));
         const pct = this.totalRevenue() > 0
           ? ((d.data.totalRevenue / this.totalRevenue()) * 100).toFixed(1) : '0';
+        const avgRev = d.data.invoiceCount > 0 ? (d.data.totalRevenue / d.data.invoiceCount) : 0;
         tip.style('opacity', '1').html(
           `<div style="font-weight:600;color:var(--glow-purple);margin-bottom:3px">${d.data.category}</div>` +
           `<div style="font-size:15px;font-weight:700">$${(d.data.totalRevenue as number).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` +
-          `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">${pct}% of total &nbsp;·&nbsp; ${d.data.invoiceCount} invoice${d.data.invoiceCount !== 1 ? 's' : ''}</div>`
+          `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">${pct}% Share &nbsp;·&nbsp; ${d.data.invoiceCount} Invoice${d.data.invoiceCount !== 1 ? 's' : ''}</div>` +
+          `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">$${Math.round(avgRev).toLocaleString()} Avg / Invoice</div>`
         );
       })
       .on('mousemove', (event: any) => {
         tip.style('left', `${event.clientX + 16}px`).style('top', `${event.clientY - 44}px`);
       })
       .on('mouseout', (event: any, d: any) => {
-        svg.selectAll('.bar')
+        svg.selectAll('.slice')
           .filter((_: any, i: number) => i === pieData.indexOf(d))
-          .transition().duration(150).attr('d', (dd: any) => arc(dd));
+          .transition().duration(50).attr('d', (dd: any) => arc(dd));
         tip.style('opacity', '0');
       });
 
@@ -505,15 +484,15 @@ export class Dashboard implements OnInit, OnDestroy {
     const d3: any = getD3();
     if (!d3) return;
 
-    const el        = this.barContainer.nativeElement;
+    const el = this.barContainer.nativeElement;
     // Walk up to the scroll wrapper so we know the available viewport width
-    const wrapper   = el.parentElement as HTMLElement;
-    const wrapperW  = wrapper ? wrapper.offsetWidth : 600;
+    const wrapper = el.parentElement as HTMLElement;
+    const wrapperW = wrapper ? wrapper.offsetWidth : 600;
 
     d3.select(el).selectAll('*').remove();
 
-    const margin   = { top: 16, right: 24, bottom: 88, left: 50 };
-    const H        = 280 - margin.top - margin.bottom;
+    const margin = { top: 16, right: 24, bottom: 88, left: 50 };
+    const H = 280 - margin.top - margin.bottom;
     const barWidth = 72;
 
     // W is always driven by data — never clamped to container.
@@ -521,14 +500,14 @@ export class Dashboard implements OnInit, OnDestroy {
     const W = Math.max(data.length * barWidth, wrapperW - margin.left - margin.right);
 
     // Explicitly size the host div to match the SVG so overflow-x triggers on the wrapper.
-    el.style.width    = `${W + margin.left + margin.right}px`;
+    el.style.width = `${W + margin.left + margin.right}px`;
     el.style.minWidth = 'unset';
 
     const svgRoot = d3.select(el).append('svg')
-      .attr('width',  W + margin.left + margin.right)
+      .attr('width', W + margin.left + margin.right)
       .attr('height', H + margin.top + margin.bottom);
     const defs = svgRoot.append('defs');
-    const svg  = svgRoot.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    const svg = svgRoot.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
     const bg = defs.append('linearGradient').attr('id', 'barG')
       .attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
@@ -553,18 +532,17 @@ export class Dashboard implements OnInit, OnDestroy {
     gg.select('.domain').remove();
     gg.selectAll('text').remove();
 
-    d3.selectAll('.dash-tooltip').remove();
     const tip = this.makeTip(d3);
 
     svg.selectAll('.bar').data(data).enter().append('rect')
       .attr('class', 'bar')
-      .attr('x',      (d: CategorySales) => x(d.category) as number)
-      .attr('width',  x.bandwidth())
+      .attr('x', (d: CategorySales) => x(d.category) as number)
+      .attr('width', x.bandwidth())
       .attr('y', H).attr('height', 0).attr('rx', 6)
       .style('fill', 'url(#barG)')
       .transition().duration(650).ease(d3.easeCubicOut)
       .delay((_d: any, i: number) => i * 40)
-      .attr('y',      (d: CategorySales) => y(d.invoiceCount) as number)
+      .attr('y', (d: CategorySales) => y(d.invoiceCount) as number)
       .attr('height', (d: CategorySales) => H - (y(d.invoiceCount) as number));
 
     svg.selectAll('.blabel').data(data).enter().append('text')
@@ -578,20 +556,22 @@ export class Dashboard implements OnInit, OnDestroy {
 
     svg.selectAll('.bar-hit').data(data).enter().append('rect')
       .attr('class', 'bar-hit')
-      .attr('x',      (d: CategorySales) => x(d.category) as number)
-      .attr('width',  x.bandwidth())
+      .attr('x', (d: CategorySales) => x(d.category) as number)
+      .attr('width', x.bandwidth())
       .attr('y', 0).attr('height', H)
       .style('fill', 'transparent').style('cursor', 'pointer')
       .on('mouseover', (_event: any, d: any) => {
         svg.selectAll('.bar')
           .filter((dd: CategorySales) => dd.category === d.category)
+          .transition().duration(50)
           .style('fill', 'url(#barGH)');
+        const avgOrder = d.invoiceCount > 0 ? (d.totalRevenue / d.invoiceCount) : 0;
         tip.style('opacity', '1').html(
           `<div style="font-weight:600;color:var(--glow-purple);margin-bottom:3px">${d.category}</div>` +
-          `<div style="font-size:15px;font-weight:700">${d.invoiceCount} invoice${d.invoiceCount !== 1 ? 's' : ''}</div>` +
+          `<div style="font-size:15px;font-weight:700">${d.invoiceCount} Invoice${d.invoiceCount !== 1 ? 's' : ''}</div>` +
           `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">` +
-          `$${(d.totalRevenue as number).toLocaleString(undefined, { maximumFractionDigits: 2 })} revenue` +
-          ` &nbsp;·&nbsp; ${d.productCount} product${d.productCount !== 1 ? 's' : ''}</div>`
+          `Total: $${(d.totalRevenue as number).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>` +
+          `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">Avg: $${Math.round(avgOrder).toLocaleString()} / order</div>`
         );
       })
       .on('mousemove', (event: any) => {
@@ -600,6 +580,7 @@ export class Dashboard implements OnInit, OnDestroy {
       .on('mouseout', (_event: any, d: any) => {
         svg.selectAll('.bar')
           .filter((dd: CategorySales) => dd.category === d.category)
+          .transition().duration(50)
           .style('fill', 'url(#barG)');
         tip.style('opacity', '0');
       });
@@ -626,47 +607,50 @@ export class Dashboard implements OnInit, OnDestroy {
     const d3: any = getD3();
     if (!d3 || !data.length) return;
 
+    data.forEach((d: any) => {
+      if (typeof d.period === 'string') d.period = new Date(d.period);
+    });
+
     const el = this.lineContainer.nativeElement;
     d3.select(el).selectAll('*').remove();
-    d3.selectAll('.dash-tooltip').remove();
 
-    const TOTAL_H  = Math.max((el.offsetHeight as number) || 320, 280);
-    const brushH   = 48;
-    const gap      = 10;
-    const margin   = { top: 16, right: 20, bottom: brushH + gap + 28, left: 64 };
-    const W        = ((el.offsetWidth as number) || 700) - margin.left - margin.right;
-    const H        = TOTAL_H - margin.top - margin.bottom;
+    const TOTAL_H = Math.max((el.offsetHeight as number) || 320, 280);
+    const brushH = 48;
+    const gap = 10;
+    const margin = { top: 16, right: 20, bottom: brushH + gap + 28, left: 64 };
+    const W = ((el.offsetWidth as number) || 700) - margin.left - margin.right;
+    const H = TOTAL_H - margin.top - margin.bottom;
 
     const svgRoot = d3.select(el).append('svg')
-      .attr('width',  W + margin.left + margin.right)
+      .attr('width', W + margin.left + margin.right)
       .attr('height', TOTAL_H)
       .style('display', 'block');
 
     const defs = svgRoot.append('defs');
 
     const ag = defs.append('linearGradient').attr('id', 'lineAreaFill')
-      .attr('x1','0%').attr('y1','0%').attr('x2','0%').attr('y2','100%');
-    ag.append('stop').attr('offset','0%').attr('stop-color','#a855f7').attr('stop-opacity','0.30');
-    ag.append('stop').attr('offset','100%').attr('stop-color','#a855f7').attr('stop-opacity','0.00');
+      .attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
+    ag.append('stop').attr('offset', '0%').attr('stop-color', '#a855f7').attr('stop-opacity', '0.30');
+    ag.append('stop').attr('offset', '100%').attr('stop-color', '#a855f7').attr('stop-opacity', '0.00');
 
-    defs.append('clipPath').attr('id','mainClip')
+    defs.append('clipPath').attr('id', 'mainClip')
       .append('rect').attr('width', W).attr('height', H + 10).attr('y', -5);
-    defs.append('clipPath').attr('id','brushClip')
+    defs.append('clipPath').attr('id', 'brushClip')
       .append('rect').attr('width', W).attr('height', brushH);
 
     const chart = svgRoot.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-    const xFull  = d3.scaleTime().range([0, W]).domain(d3.extent(data, (d: any) => d.period) as [Date, Date]);
+    const xFull = d3.scaleTime().range([0, W]).domain(d3.extent(data, (d: any) => d.period) as [Date, Date]);
     const maxRev = (d3.max(data, (d: any) => d.revenue) as number) || 1;
-    const yFull  = d3.scaleLinear().range([H, 0]).domain([0, maxRev * 1.18]);
+    const yFull = d3.scaleLinear().range([H, 0]).domain([0, maxRev * 1.18]);
 
     let xNow = xFull.copy();
 
-    const gridG = chart.append('g').attr('class','grid-group');
+    const gridG = chart.append('g').attr('class', 'grid-group');
     const drawGrid = (_xScale: any) => {
       gridG.selectAll('*').remove();
       gridG.call(d3.axisLeft(yFull).tickSize(-W).ticks(5).tickFormat(() => ''));
-      gridG.selectAll('line').style('stroke','rgba(255,255,255,0.05)').style('stroke-dasharray','4,4');
+      gridG.selectAll('line').style('stroke', 'rgba(255,255,255,0.05)').style('stroke-dasharray', '4,4');
       gridG.select('.domain').remove();
       gridG.selectAll('text').remove();
     };
@@ -684,34 +668,36 @@ export class Dashboard implements OnInit, OnDestroy {
 
     const areaPath = chart.append('path')
       .datum(data)
-      .attr('fill','url(#lineAreaFill)')
-      .attr('clip-path','url(#mainClip)')
+      .attr('fill', 'url(#lineAreaFill)')
+      .attr('clip-path', 'url(#mainClip)')
       .attr('d', buildArea(xNow));
 
     const linePath = chart.append('path')
       .datum(data)
-      .attr('fill','none')
-      .attr('stroke','#a855f7').attr('stroke-width', 2)
-      .attr('clip-path','url(#mainClip)')
+      .attr('fill', 'none')
+      .attr('stroke', '#a855f7').attr('stroke-width', 2)
+      .attr('clip-path', 'url(#mainClip)')
       .attr('d', buildLine(xNow));
 
-    const dotsG = chart.append('g').attr('clip-path','url(#mainClip)');
+    const dotsG = chart.append('g').attr('clip-path', 'url(#mainClip)');
     const renderDots = (xScale: any) => {
       dotsG.selectAll('.ldot').remove();
       const [t0, t1] = xScale.domain();
-      const visible = data.filter((d: any) => d.period >= t0 && d.period <= t1);
-      if (visible.length > 60) return;
+      const visible = data.filter((d: any) => d.period && d.period >= t0 && d.period <= t1);
+      if (visible.length > 5000) return;
       dotsG.selectAll('.ldot').data(visible).enter().append('circle')
-        .attr('class','ldot')
+        .attr('class', 'ldot')
         .attr('cx', (d: any) => xScale(d.period))
         .attr('cy', (d: any) => yFull(d.revenue))
-        .attr('r', visible.length < 20 ? 4 : 3)
-        .attr('fill','#a855f7').attr('stroke','rgba(15,10,30,0.8)').attr('stroke-width', 1.5)
-        .style('pointer-events','none');
+        .attr('r', visible.length < 50 ? 4 : 3)
+        .attr('fill', '#a855f7').attr('stroke', 'rgba(15,10,30,0.8)').attr('stroke-width', 1.5)
+        .style('pointer-events', 'none').style('opacity', 0);
+
+      dotsG.selectAll('.ldot').transition().duration(400).style('opacity', 1);
     };
     renderDots(xNow);
 
-    const xAxisG = chart.append('g').attr('transform',`translate(0,${H})`);
+    const xAxisG = chart.append('g').attr('transform', `translate(0,${H})`);
     const yAxisG = chart.append('g');
 
     const getTickFormat = () => {
@@ -720,37 +706,37 @@ export class Dashboard implements OnInit, OnDestroy {
 
     const drawAxes = (xScale: any) => {
       xAxisG.call(d3.axisBottom(xScale).ticks(6).tickFormat(getTickFormat()).tickSize(4));
-      xAxisG.select('.domain').style('stroke','rgba(255,255,255,0.1)');
-      xAxisG.selectAll('text').style('fill','var(--text-muted)').style('font-size','11px').attr('dy','1.4em');
-      xAxisG.selectAll('.tick line').style('stroke','rgba(255,255,255,0.1)');
+      xAxisG.select('.domain').style('stroke', 'rgba(255,255,255,0.1)');
+      xAxisG.selectAll('text').style('fill', 'var(--text-muted)').style('font-size', '11px').attr('dy', '1.4em');
+      xAxisG.selectAll('.tick line').style('stroke', 'rgba(255,255,255,0.1)');
 
       yAxisG.call(
         d3.axisLeft(yFull).ticks(5)
-          .tickFormat((d: any) => `$${Number(d) >= 1000 ? (Number(d)/1000).toFixed(0)+'k' : d}`)
+          .tickFormat((d: any) => `$${Number(d) >= 1000 ? (Number(d) / 1000).toFixed(0) + 'k' : d}`)
       );
       yAxisG.select('.domain').remove();
-      yAxisG.selectAll('text').style('fill','var(--text-muted)').style('font-size','11px');
+      yAxisG.selectAll('text').style('fill', 'var(--text-muted)').style('font-size', '11px');
       yAxisG.selectAll('.tick line').remove();
     };
     drawAxes(xNow);
 
     const tip = this.makeTip(d3);
-    const crossV = chart.append('line').attr('class','crosshair-v')
+    const crossV = chart.append('line').attr('class', 'crosshair-v')
       .attr('y1', 0).attr('y2', H)
-      .style('stroke','rgba(168,85,247,0.5)').style('stroke-width','1')
-      .style('stroke-dasharray','4,3').style('pointer-events','none').style('opacity', 0);
-    const crossH = chart.append('line').attr('class','crosshair-h')
+      .style('stroke', 'rgba(168,85,247,0.5)').style('stroke-width', '1')
+      .style('stroke-dasharray', '4,3').style('pointer-events', 'none').style('opacity', 0);
+    const crossH = chart.append('line').attr('class', 'crosshair-h')
       .attr('x1', 0).attr('x2', W)
-      .style('stroke','rgba(168,85,247,0.3)').style('stroke-width','1')
-      .style('stroke-dasharray','4,3').style('pointer-events','none').style('opacity', 0);
+      .style('stroke', 'rgba(168,85,247,0.3)').style('stroke-width', '1')
+      .style('stroke-dasharray', '4,3').style('pointer-events', 'none').style('opacity', 0);
     const crossDot = chart.append('circle').attr('r', 5)
-      .attr('fill','#a855f7').attr('stroke','rgba(15,10,30,0.9)').attr('stroke-width',2)
-      .style('pointer-events','none').style('opacity', 0);
+      .attr('fill', '#a855f7').attr('stroke', 'rgba(15,10,30,0.9)').attr('stroke-width', 2)
+      .style('pointer-events', 'none').style('opacity', 0);
 
     const bisect = d3.bisector((d: any) => d.period).left;
     const overlay = chart.append('rect')
       .attr('width', W).attr('height', H)
-      .style('fill','none').style('pointer-events','all').style('cursor','crosshair');
+      .style('fill', 'none').style('pointer-events', 'all').style('cursor', 'crosshair');
 
     overlay.on('mousemove', (event: any) => {
       const [mx] = d3.pointer(event);
@@ -765,16 +751,18 @@ export class Dashboard implements OnInit, OnDestroy {
       crossH.attr('y1', cy).attr('y2', cy).style('opacity', 1);
       crossDot.attr('cx', cx).attr('cy', cy).style('opacity', 1);
 
-      const dateStr = (d.period as Date).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
-      tip.style('opacity','1').html(
+      const dateStr = (d.period as Date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const revPerInv = d.invoices > 0 ? (d.revenue / d.invoices) : 0;
+
+      tip.style('opacity', '1').html(
         `<div style="font-weight:700;color:var(--glow-purple);margin-bottom:4px">${dateStr}</div>` +
         `<div style="font-size:18px;font-weight:700">$${Math.round(d.revenue).toLocaleString()}</div>` +
-        `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">${d.invoices} invoice${d.invoices !== 1 ? 's' : ''}</div>`
+        `<div style="color:var(--text-muted);font-size:12px;margin-top:2px">${d.invoices} invoice${d.invoices !== 1 ? 's' : ''} &nbsp;·&nbsp; $${Math.round(revPerInv).toLocaleString()}/avg</div>`
       );
       const bx = event.clientX, by = event.clientY;
       const tw = 180;
       tip.style('left', `${bx + (bx > window.innerWidth - tw - 30 ? -tw - 16 : 16)}px`)
-         .style('top',  `${by - 60}px`);
+        .style('top', `${by - 60}px`);
     });
     overlay.on('mouseleave', () => {
       crossV.style('opacity', 0);
@@ -788,8 +776,8 @@ export class Dashboard implements OnInit, OnDestroy {
 
     const yMini = d3.scaleLinear().range([brushH, 0]).domain(yFull.domain());
     brushG.append('path').datum(data)
-      .attr('fill','rgba(168,85,247,0.15)')
-      .attr('stroke','rgba(168,85,247,0.5)').attr('stroke-width', 1)
+      .attr('fill', 'rgba(168,85,247,0.15)')
+      .attr('stroke', 'rgba(168,85,247,0.5)').attr('stroke-width', 1)
       .attr('d', d3.area()
         .x((d: any) => xFull(d.period))
         .y0(brushH).y1((d: any) => yMini(d.revenue))
@@ -809,14 +797,14 @@ export class Dashboard implements OnInit, OnDestroy {
         drawGrid(xNow);
       });
 
-    const brushSel = brushG.append('g').attr('class','brush').call(brush);
+    const brushSel = brushG.append('g').attr('class', 'brush').call(brush);
     brushSel.select('.selection')
-      .style('fill','rgba(168,85,247,0.2)')
-      .style('stroke','rgba(168,85,247,0.6)')
-      .style('stroke-width','1');
+      .style('fill', 'rgba(168,85,247,0.2)')
+      .style('stroke', 'rgba(168,85,247,0.6)')
+      .style('stroke-width', '1');
     brushSel.selectAll('.handle')
-      .style('fill','rgba(168,85,247,0.8)')
-      .style('width','4px');
+      .style('fill', 'rgba(168,85,247,0.8)')
+      .style('width', '4px');
 
     const zoom = d3.zoom()
       .scaleExtent([1, data.length > 1 ? data.length : 50])
@@ -837,8 +825,8 @@ export class Dashboard implements OnInit, OnDestroy {
     overlay.call(zoom as any);
     chart.append('text')
       .attr('x', W).attr('y', -4)
-      .attr('text-anchor','end')
-      .style('fill','rgba(255,255,255,0.2)').style('font-size','10px')
+      .attr('text-anchor', 'end')
+      .style('fill', 'rgba(255,255,255,0.2)').style('font-size', '10px')
       .text('scroll to zoom · drag to pan');
 
     brushG.select('.brush').call(brush.move as any, [0, W]);
@@ -846,15 +834,20 @@ export class Dashboard implements OnInit, OnDestroy {
 
   // ── Tooltip factory ───────────────────────────────────────────────────
   private makeTip(d3: any): any {
-    d3.selectAll('.dash-tooltip').remove();
-    return d3.select('body').append('div').attr('class', 'dash-tooltip')
-      .style('position', 'fixed').style('pointer-events', 'none')
+    let tip = d3.select('body').select('.dash-tooltip');
+    if (tip.empty()) {
+      tip = d3.select('body').append('div').attr('class', 'dash-tooltip');
+    }
+    tip
+      .style('position', 'fixed')
+      .style('pointer-events', 'none')
       .style('background', 'var(--bg-elevated)').style('backdrop-filter', 'blur(16px)')
       .style('color', 'var(--text-primary)')
       .style('border', '1px solid rgba(168,85,247,0.35)')
       .style('border-radius', '12px').style('padding', '10px 14px')
       .style('font-size', '13px').style('line-height', '1.6')
-      .style('opacity', '0').style('transition', 'opacity 0.15s').style('z-index', '9999')
+      .style('opacity', '0').style('transition', 'none').style('z-index', '9999')
       .style('box-shadow', '0 8px 32px rgba(0,0,0,0.35)');
+    return tip;
   }
 }

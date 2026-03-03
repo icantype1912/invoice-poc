@@ -64,6 +64,9 @@ namespace invoice_v1.src.Application.Services
                 throw new InvalidOperationException("Vendor not found");
             }
 
+            // Resolve the vendor's display name for ModifiedBy field
+            var modifiedByName = vendor.Username ?? vendor.Email;
+
             // 3. SANITIZE FILENAME
             var originalFileName = Path.GetFileName(file.FileName);
             var invalidChars = Path.GetInvalidFileNameChars();
@@ -92,6 +95,7 @@ namespace invoice_v1.src.Application.Services
                         DetectedAt = DateTime.UtcNow,
                         Processed = true,
                         ProcessedAt = DateTime.UtcNow,
+                        ModifiedBy = modifiedByName,
                         SecurityStatus = nameof(FileSecurityStatus.Unhealthy),
                         SecurityFailReason = pipelineResult.FailReason,
                         SecurityCheckedAt = DateTime.UtcNow
@@ -147,6 +151,7 @@ namespace invoice_v1.src.Application.Services
                 UploadedByVendorId = vendorId,
                 DetectedAt = DateTime.UtcNow,
                 Processed = false,
+                ModifiedBy = modifiedByName,
                 SecurityStatus = nameof(FileSecurityStatus.Healthy),
                 SecurityFailReason = null,
                 SecurityCheckedAt = DateTime.UtcNow,

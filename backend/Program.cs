@@ -12,8 +12,20 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- 0. LOGGING CONFIGURATION (Serilog) ---
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/backend-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // --- 1. DATABASE CONFIGURATION ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -73,8 +85,8 @@ builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IFileChangeLogRepository, FileChangeLogRepository>();
 builder.Services.AddScoped<IInvalidInvoiceRepository, InvalidInvoiceRepository>();
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
-builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IDbContextFacade, DbContextFacade>();
+builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 
 // --- 5. DEPENDENCY INJECTION - APPLICATION SERVICES ---
 builder.Services.AddScoped<IAuthService, AuthService>();

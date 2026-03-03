@@ -160,5 +160,24 @@ namespace invoice_v1.src.Infrastructure.Repositories
                     il.Amount))
                 .ToListAsync();
         }
+
+        public async Task<List<(DateTime InvoiceDate, decimal Amount)>> GetRevenueTrendDataAsync(
+            DateTime startDate,
+            DateTime endDate,
+            Guid? vendorId)
+        {
+            var query = _context.Invoices
+                .Where(i => (i.InvoiceDate ?? i.CreatedAt) >= startDate &&
+                             (i.InvoiceDate ?? i.CreatedAt) <= endDate);
+
+            if (vendorId.HasValue)
+                query = query.Where(i => i.UploadedByVendorId == vendorId.Value);
+
+            return await query
+                .Select(i => new ValueTuple<DateTime, decimal>(
+                    i.InvoiceDate ?? i.CreatedAt,
+                    i.TotalAmount ?? 0))
+                .ToListAsync();
+        }
     }
 }

@@ -2,6 +2,7 @@
 # Secrets
 # ======================
 appsettings.Development.json
+appsettings.json
 service-account-key.json
 invoice-486512-12a8a3e5d1f8.json
 Drive.Personal.Auth/
@@ -21,11 +22,6 @@ obj/
 *.user
 *.rsuser
 
-# ======================
-# Logs
-# ======================
-logs/
-*.log
 
 # ======================
 # NuGet

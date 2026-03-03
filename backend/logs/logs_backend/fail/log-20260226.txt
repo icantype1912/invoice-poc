@@ -1,0 +1,15 @@
+2026-02-26 00:19:19 | invoice_v1.src.Application.Services.JobService | ERR | Job "9df4c258-33e0-4e0a-97f9-595a5a50b692" reached permanent failure and was marked as INVALID. Reason: {"message":"LLM extraction failed: 5 validation errors for InvoiceData\nInvoiceNumber\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.6/v/string_type\nInvoiceDate\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.6/v/string_type\nBillTo.Name\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.6/v/string_type\nLineItems\n  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.6/v/too_short\nTotalAmount\n  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.6/v/float_type"}
+2026-02-26 00:19:19 | invoice_v1.src.Api.Controllers.CallbackController | ERR | Job "9df4c258-33e0-4e0a-97f9-595a5a50b692" marked as FAILED by worker.
+2026-02-26 10:20:06 | invoice_v1.src.Services.GoogleDriveService | ERR | Error recursively listing files starting from 1-PenAeLnXGUiZeNrmxJoVOX4yAf_sMCJ
+The service drive has thrown an exception.
+HttpStatusCode is InternalServerError.
+Google.Apis.Requests.RequestError
+Internal Error [500]
+Errors [
+	Message[Internal Error] Location[ - ] Reason[internalError] Domain[global]
+]
+
+Google.GoogleApiException: The service drive has thrown an exception. HttpStatusCode is InternalServerError. Internal Error
+   at Google.Apis.Requests.ClientServiceRequest`1.ParseResponse(HttpResponseMessage response)
+   at Google.Apis.Requests.ClientServiceRequest`1.ExecuteAsync(CancellationToken cancellationToken)
+   at invoice_v1.src.Services.GoogleDriveService.ListAllFilesRecursivelyAsync(String rootFolderId, CancellationToken cancellationToken) in C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\backend\src\Services\GoogleDriveService.cs:line 116

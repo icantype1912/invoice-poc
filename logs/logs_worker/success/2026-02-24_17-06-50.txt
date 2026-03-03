@@ -1,0 +1,15 @@
+2026-02-24 22:36:50 | app.utils.file_logger | INFO | File logging initialized → C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\logs\logs_worker (run: 2026-02-24_17-06-50)
+2026-02-24 22:36:50 | app.worker | INFO | Initializing worker services...
+2026-02-24 22:36:50 | app.database.job_claimer | INFO | Database connection established
+2026-02-24 22:36:50 | app.worker | INFO | ✓ Database connected
+2026-02-24 22:36:50 | googleapiclient.discovery_cache | INFO | file_cache is only supported with oauth2client<4.0.0
+2026-02-24 22:36:50 | app.services.drive_service | INFO | Google Drive service initialized
+2026-02-24 22:36:50 | app.worker | INFO | ✓ Google Drive connected
+2026-02-24 22:36:51 | app.extractors.llm_extractor | INFO | Initialized LLM extractor with model: llama-3.3-70b-versatile
+2026-02-24 22:36:51 | app.worker | INFO | ✓ LLM extractor initialized
+2026-02-24 22:36:51 | app.worker | INFO | ✓ Callback service initialized
+2026-02-24 22:36:51 | app.worker | INFO | Worker initialization complete
+2026-02-24 22:36:51 | app.main | INFO | FastAPI app started with background worker
+2026-02-24 22:36:51 | app.worker | INFO | Worker worker-1 starting...
+2026-02-24 22:36:51 | app.worker | INFO | Worker worker-1 polling every 5 seconds (max retries: 3)
+2026-02-24 22:38:57 | app.main | INFO | FastAPI app stopped

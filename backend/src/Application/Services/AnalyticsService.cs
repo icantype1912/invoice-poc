@@ -108,5 +108,38 @@ namespace invoice_v1.src.Application.Services
                 .OrderBy(d => d.Period)
                 .ToList();
         }
+
+        public async Task<List<RevenueTrendDto>> GetRevenueTrendAsync(
+            DateTime startDate,
+            DateTime endDate,
+            TimeGranularity granularity = TimeGranularity.Monthly,
+            Guid? vendorId = null)
+        {
+            _logger.LogInformation(
+                "Getting revenue trend from {StartDate} to {EndDate} [Granularity: {Granularity}, Vendor: {VendorId}]",
+                startDate, endDate, granularity, vendorId?.ToString() ?? "ALL");
+
+            var rawData = await _analyticsRepository.GetRevenueTrendDataAsync(
+                startDate, endDate, vendorId);
+
+            return rawData
+                .GroupBy(d => granularity switch
+                {
+                    TimeGranularity.Daily => d.InvoiceDate.Date,
+                    TimeGranularity.Weekly => d.InvoiceDate.AddDays(-(int)d.InvoiceDate.DayOfWeek).Date,
+                    TimeGranularity.Monthly => new DateTime(d.InvoiceDate.Year, d.InvoiceDate.Month, 1),
+                    TimeGranularity.Quarterly => new DateTime(d.InvoiceDate.Year, (d.InvoiceDate.Month - 1) / 3 * 3 + 1, 1),
+                    TimeGranularity.Yearly => new DateTime(d.InvoiceDate.Year, 1, 1),
+                    _ => d.InvoiceDate.Date
+                })
+                .Select(g => new RevenueTrendDto
+                {
+                    Period = g.Key,
+                    Revenue = g.Sum(x => x.Amount),
+                    InvoiceCount = g.Count()
+                })
+                .OrderBy(d => d.Period)
+                .ToList();
+        }
     }
 }

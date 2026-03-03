@@ -5,6 +5,18 @@
       <p class="page-subtitle">Background processing tasks and status</p>
     </div>
     <div class="header-actions">
+      <!-- Issue #8: Admin vendor filter -->
+      @if (isAdmin && vendors().length > 0) {
+      <div class="vendor-select-wrap">
+        <label class="vendor-label">Vendor</label>
+        <select class="vendor-select" (change)="onVendorChange($event)" [value]="selectedVendorId()">
+          <option value="">All Vendors</option>
+          @for (v of vendors(); track v.id) {
+          <option [value]="v.id">{{ v.companyName || v.email }}</option>
+          }
+        </select>
+      </div>
+      }
       <button class="action-btn" (click)="refresh()">Refresh</button>
     </div>
   </div>
@@ -35,9 +47,12 @@
                 <td class="mono muted align-center" [title]="job.id">...{{ job.id.slice(-8) }}</td>
                 <td class="mono muted align-center">{{ job.jobType }}</td>
                 <td class="align-center">
+                  <!-- Issue #10: Clickable COMPLETED status badge -->
                   <span class="status-badge" [class.pending]="job.status === 'PENDING'"
                     [class.processing]="job.status === 'PROCESSING'" [class.failed]="job.status === 'FAILED'"
-                    [class.completed]="job.status === 'COMPLETED'" [class.invalid]="job.status === 'INVALID'">
+                    [class.completed]="job.status === 'COMPLETED'" [class.invalid]="job.status === 'INVALID'"
+                    [class.clickable]="job.status === 'COMPLETED'" (click)="showRawJson(job, $event)"
+                    [title]="job.status === 'COMPLETED' ? 'Click to view extracted data' : ''">
                     {{ job.status }}
                   </span>
                 </td>
@@ -82,7 +97,7 @@
     </div>
   </div>
 
-  <!-- Closable Details View -->
+  <!-- Issue #2: Detail View — admin sees full payload, vendor sees limited info -->
   @if (selectedJob()) {
   <div class="details-panel">
     <div class="details-header">
@@ -91,13 +106,54 @@
     </div>
     <div class="details-body">
       <div class="detail-grid">
-        @for (entry of getPayloadEntries(selectedJob()?.payloadJson); track entry.key) {
+        <div class="detail-item">
+          <span class="detail-label">Job ID</span>
+          <span class="detail-value mono">{{ selectedJob()?.id }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Status</span>
+          <span class="detail-value">{{ selectedJob()?.status }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Type</span>
+          <span class="detail-value">{{ selectedJob()?.jobType }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Created</span>
+          <span class="detail-value">{{ selectedJob()?.createdAt | date:'medium' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Updated</span>
+          <span class="detail-value">{{ selectedJob()?.updatedAt | date:'medium' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Retries</span>
+          <span class="detail-value">{{ selectedJob()?.retryCount }}</span>
+        </div>
+        <!-- Admin-only: full payload/result details -->
+        @if (isAdmin) {
+        @for (entry of getPayloadEntries(selectedJob()); track entry.key) {
         <div class="detail-item">
           <span class="detail-label">{{ entry.key }}</span>
           <span class="detail-value mono">{{ entry.value }}</span>
         </div>
         }
+        }
       </div>
+    </div>
+  </div>
+  }
+
+  <!-- Issue #10: Raw JSON popup for completed jobs -->
+  @if (rawJsonJob()) {
+  <div class="modal-overlay" (click)="closeRawJson()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Extracted Data</h3>
+        <button class="close-btn" (click)="closeRawJson()">✕</button>
+      </div>
+      <p class="modal-subtitle">Following data was extracted:</p>
+      <pre class="modal-json">{{ getPrettyJson(rawJsonJob()?.resultJson || rawJsonJob()?.payloadJson) }}</pre>
     </div>
   </div>
   }

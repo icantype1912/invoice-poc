@@ -23,14 +23,17 @@ namespace invoice_v1.tests.Services
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(t => t.GetProperties()))
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
-                if (property.ClrType == typeof(JsonDocument))
+                foreach (var property in entityType.GetProperties())
                 {
-                    property.SetColumnType(null);
-                    property.SetValueConverter(new ValueConverter<JsonDocument, string>(
-                        v => v.RootElement.GetRawText(),
-                        v => JsonDocument.Parse(v, default)));
+                    if (property.ClrType == typeof(JsonDocument))
+                    {
+                        property.SetColumnType(null);
+                        property.SetValueConverter(new ValueConverter<JsonDocument, string>(
+                            v => v.RootElement.GetRawText(),
+                            v => JsonDocument.Parse(v, default)));
+                    }
                 }
             }
         }

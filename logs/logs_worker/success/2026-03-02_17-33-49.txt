@@ -1,0 +1,264 @@
+2026-03-02 23:03:49 | app.utils.file_logger | INFO | File logging initialized → C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\logs\logs_worker (run: 2026-03-02_17-33-49)
+2026-03-02 23:03:49 | app.worker | INFO | Initializing worker services...
+2026-03-02 23:03:49 | app.database.job_claimer | INFO | Database connection established
+2026-03-02 23:03:49 | app.worker | INFO | ✓ Database connected
+2026-03-02 23:03:49 | googleapiclient.discovery_cache | INFO | file_cache is only supported with oauth2client<4.0.0
+2026-03-02 23:03:49 | app.services.drive_service | INFO | Google Drive service initialized
+2026-03-02 23:03:49 | app.worker | INFO | ✓ Google Drive connected
+2026-03-02 23:03:49 | app.extractors.llm_extractor | INFO | Initialized LLM extractor with model: llama-3.3-70b-versatile
+2026-03-02 23:03:49 | app.worker | INFO | ✓ LLM extractor initialized
+2026-03-02 23:03:49 | app.worker | INFO | ✓ Callback service initialized
+2026-03-02 23:03:49 | app.worker | INFO | Worker initialization complete
+2026-03-02 23:03:49 | app.main | INFO | FastAPI app started with background worker
+2026-03-02 23:03:49 | app.worker | INFO | Worker worker-1 starting...
+2026-03-02 23:03:49 | app.worker | INFO | Worker worker-1 polling every 5 seconds (max retries: 3)
+2026-03-02 23:12:20 | app.database.job_claimer | INFO | Claimed job e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f
+2026-03-02 23:12:20 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] Claimed job (attempt 1/4)
+2026-03-02 23:12:20 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] Downloading file 1ZFKdnbvB_6Zr9YAvqO5nnxjnXwwOxFJK
+2026-03-02 23:12:20 | app.services.drive_service | INFO | Downloading file 1ZFKdnbvB_6Zr9YAvqO5nnxjnXwwOxFJK (Attempt 1/3)
+2026-03-02 23:12:25 | app.services.drive_service | INFO | Downloaded 14642 bytes successfully
+2026-03-02 23:12:25 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:12:25 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] Extracting text using pdf pipeline
+2026-03-02 23:12:25 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] Extracted 386 characters
+2026-03-02 23:12:25 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] Sending to Groq LLM
+2026-03-02 23:12:25 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 386 characters
+2026-03-02 23:12:27 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:12:27 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 11753
+2026-03-02 23:12:27 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] Successfully extracted invoice 11753
+2026-03-02 23:12:27 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f] All validations passed
+2026-03-02 23:12:27 | app.services.callback_service | INFO | Sending callback for job e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f to http://localhost:5247/api/callback
+2026-03-02 23:12:27 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:12:27 | app.services.callback_service | INFO | Callback accepted for job e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f
+2026-03-02 23:12:27 | app.worker | INFO | [e7c589ef-b733-4ff6-a5bc-40eaf2bdc01f]  Job completed successfully
+2026-03-02 23:12:32 | app.database.job_claimer | INFO | Claimed job d9935b42-4b36-4363-95c9-844d7c2acc27
+2026-03-02 23:12:32 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] Claimed job (attempt 1/4)
+2026-03-02 23:12:32 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] Downloading file 16fE6u1tqv8Spo3MAGLxX6zWGUeYObwRn
+2026-03-02 23:12:32 | app.services.drive_service | INFO | Downloading file 16fE6u1tqv8Spo3MAGLxX6zWGUeYObwRn (Attempt 1/3)
+2026-03-02 23:12:33 | app.services.drive_service | INFO | Downloaded 15162 bytes successfully
+2026-03-02 23:12:33 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:12:33 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] Extracting text using pdf pipeline
+2026-03-02 23:12:33 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] Extracted 390 characters
+2026-03-02 23:12:33 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] Sending to Groq LLM
+2026-03-02 23:12:33 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 390 characters
+2026-03-02 23:12:35 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:12:35 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 27988
+2026-03-02 23:12:35 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] Successfully extracted invoice 27988
+2026-03-02 23:12:35 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27] All validations passed
+2026-03-02 23:12:35 | app.services.callback_service | INFO | Sending callback for job d9935b42-4b36-4363-95c9-844d7c2acc27 to http://localhost:5247/api/callback
+2026-03-02 23:12:35 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:12:35 | app.services.callback_service | INFO | Callback accepted for job d9935b42-4b36-4363-95c9-844d7c2acc27
+2026-03-02 23:12:35 | app.worker | INFO | [d9935b42-4b36-4363-95c9-844d7c2acc27]  Job completed successfully
+2026-03-02 23:12:40 | app.database.job_claimer | INFO | Claimed job e0d2aa7f-35cf-4da9-b002-97899fe23706
+2026-03-02 23:12:40 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] Claimed job (attempt 1/4)
+2026-03-02 23:12:40 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] Downloading file 1klOxQyeLNLgbZli6Z8m7EngPiW0i7LHK
+2026-03-02 23:12:40 | app.services.drive_service | INFO | Downloading file 1klOxQyeLNLgbZli6Z8m7EngPiW0i7LHK (Attempt 1/3)
+2026-03-02 23:12:41 | app.services.drive_service | INFO | Downloaded 15377 bytes successfully
+2026-03-02 23:12:41 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:12:41 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] Extracting text using pdf pipeline
+2026-03-02 23:12:41 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] Extracted 402 characters
+2026-03-02 23:12:41 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] Sending to Groq LLM
+2026-03-02 23:12:41 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 402 characters
+2026-03-02 23:12:43 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:12:43 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 1935
+2026-03-02 23:12:43 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] Successfully extracted invoice 1935
+2026-03-02 23:12:43 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706] All validations passed
+2026-03-02 23:12:43 | app.services.callback_service | INFO | Sending callback for job e0d2aa7f-35cf-4da9-b002-97899fe23706 to http://localhost:5247/api/callback
+2026-03-02 23:12:43 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:12:43 | app.services.callback_service | INFO | Callback accepted for job e0d2aa7f-35cf-4da9-b002-97899fe23706
+2026-03-02 23:12:43 | app.worker | INFO | [e0d2aa7f-35cf-4da9-b002-97899fe23706]  Job completed successfully
+2026-03-02 23:12:48 | app.database.job_claimer | INFO | Claimed job f04c02f9-dc10-4274-8795-966b137a4b31
+2026-03-02 23:12:48 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] Claimed job (attempt 1/4)
+2026-03-02 23:12:48 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] Downloading file 1-C6PQGLjOmKBwGW1dGVr041bAO7TK66-
+2026-03-02 23:12:48 | app.services.drive_service | INFO | Downloading file 1-C6PQGLjOmKBwGW1dGVr041bAO7TK66- (Attempt 1/3)
+2026-03-02 23:12:58 | app.services.drive_service | INFO | Downloaded 14440 bytes successfully
+2026-03-02 23:12:58 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:12:58 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] Extracting text using pdf pipeline
+2026-03-02 23:12:58 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] Extracted 386 characters
+2026-03-02 23:12:58 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] Sending to Groq LLM
+2026-03-02 23:12:58 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 386 characters
+2026-03-02 23:13:00 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:13:00 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 24210
+2026-03-02 23:13:00 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] Successfully extracted invoice 24210
+2026-03-02 23:13:00 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31] All validations passed
+2026-03-02 23:13:00 | app.services.callback_service | INFO | Sending callback for job f04c02f9-dc10-4274-8795-966b137a4b31 to http://localhost:5247/api/callback
+2026-03-02 23:13:00 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:13:00 | app.services.callback_service | INFO | Callback accepted for job f04c02f9-dc10-4274-8795-966b137a4b31
+2026-03-02 23:13:00 | app.worker | INFO | [f04c02f9-dc10-4274-8795-966b137a4b31]  Job completed successfully
+2026-03-02 23:27:46 | app.database.job_claimer | INFO | Claimed job e2bb6292-c6bf-4254-8fb6-65560b5ef95d
+2026-03-02 23:27:46 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] Claimed job (attempt 1/4)
+2026-03-02 23:27:46 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] Downloading file 1NJ9cA6F2ULzEOM3RFn0TqnWCQwIRHlq5
+2026-03-02 23:27:46 | app.services.drive_service | INFO | Downloading file 1NJ9cA6F2ULzEOM3RFn0TqnWCQwIRHlq5 (Attempt 1/3)
+2026-03-02 23:27:48 | app.services.drive_service | INFO | Downloading file 1NJ9cA6F2ULzEOM3RFn0TqnWCQwIRHlq5 (Attempt 2/3)
+2026-03-02 23:27:51 | app.services.drive_service | INFO | Downloaded 14776 bytes successfully
+2026-03-02 23:27:51 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:27:51 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] Extracting text using pdf pipeline
+2026-03-02 23:27:51 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] Extracted 422 characters
+2026-03-02 23:27:51 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] Sending to Groq LLM
+2026-03-02 23:27:51 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 422 characters
+2026-03-02 23:27:53 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:27:53 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 15218
+2026-03-02 23:27:53 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] Successfully extracted invoice 15218
+2026-03-02 23:27:53 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d] All validations passed
+2026-03-02 23:27:53 | app.services.callback_service | INFO | Sending callback for job e2bb6292-c6bf-4254-8fb6-65560b5ef95d to http://localhost:5247/api/callback
+2026-03-02 23:27:53 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:27:53 | app.services.callback_service | INFO | Callback accepted for job e2bb6292-c6bf-4254-8fb6-65560b5ef95d
+2026-03-02 23:27:53 | app.worker | INFO | [e2bb6292-c6bf-4254-8fb6-65560b5ef95d]  Job completed successfully
+2026-03-02 23:27:58 | app.database.job_claimer | INFO | Claimed job b22fc18a-9c19-4f28-923b-8b4da7379ad0
+2026-03-02 23:27:58 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] Claimed job (attempt 1/4)
+2026-03-02 23:27:58 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] Downloading file 1OaJnY4fnHhWUEvehtSiPTAU0ZASMUlH3
+2026-03-02 23:27:58 | app.services.drive_service | INFO | Downloading file 1OaJnY4fnHhWUEvehtSiPTAU0ZASMUlH3 (Attempt 1/3)
+2026-03-02 23:27:59 | app.services.drive_service | INFO | Downloaded 15315 bytes successfully
+2026-03-02 23:27:59 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:27:59 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] Extracting text using pdf pipeline
+2026-03-02 23:27:59 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] Extracted 412 characters
+2026-03-02 23:27:59 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] Sending to Groq LLM
+2026-03-02 23:27:59 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 412 characters
+2026-03-02 23:28:01 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:28:01 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 9480
+2026-03-02 23:28:01 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] Successfully extracted invoice 9480
+2026-03-02 23:28:01 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0] All validations passed
+2026-03-02 23:28:01 | app.services.callback_service | INFO | Sending callback for job b22fc18a-9c19-4f28-923b-8b4da7379ad0 to http://localhost:5247/api/callback
+2026-03-02 23:28:01 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:28:01 | app.services.callback_service | INFO | Callback accepted for job b22fc18a-9c19-4f28-923b-8b4da7379ad0
+2026-03-02 23:28:01 | app.worker | INFO | [b22fc18a-9c19-4f28-923b-8b4da7379ad0]  Job completed successfully
+2026-03-02 23:28:06 | app.database.job_claimer | INFO | Claimed job 186410ad-0011-4128-b147-526a37fadd58
+2026-03-02 23:28:06 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] Claimed job (attempt 1/4)
+2026-03-02 23:28:06 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] Downloading file 1_8rK-zj2Go9nd_XrMksqIfx9WD-zaBk-
+2026-03-02 23:28:06 | app.services.drive_service | INFO | Downloading file 1_8rK-zj2Go9nd_XrMksqIfx9WD-zaBk- (Attempt 1/3)
+2026-03-02 23:28:07 | app.services.drive_service | INFO | Downloaded 15399 bytes successfully
+2026-03-02 23:28:07 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:28:07 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] Extracting text using pdf pipeline
+2026-03-02 23:28:07 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] Extracted 424 characters
+2026-03-02 23:28:07 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] Sending to Groq LLM
+2026-03-02 23:28:07 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 424 characters
+2026-03-02 23:28:09 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:28:09 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 49660
+2026-03-02 23:28:09 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] Successfully extracted invoice 49660
+2026-03-02 23:28:09 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58] All validations passed
+2026-03-02 23:28:09 | app.services.callback_service | INFO | Sending callback for job 186410ad-0011-4128-b147-526a37fadd58 to http://localhost:5247/api/callback
+2026-03-02 23:28:09 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:28:09 | app.services.callback_service | INFO | Callback accepted for job 186410ad-0011-4128-b147-526a37fadd58
+2026-03-02 23:28:09 | app.worker | INFO | [186410ad-0011-4128-b147-526a37fadd58]  Job completed successfully
+2026-03-02 23:28:14 | app.database.job_claimer | INFO | Claimed job 643b47e0-15c8-49fa-b8d0-bbce1556155d
+2026-03-02 23:28:14 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] Claimed job (attempt 1/4)
+2026-03-02 23:28:14 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] Downloading file 1U-7aM_5OXWvqvqW8L3kT_d4-f0qYDLKA
+2026-03-02 23:28:14 | app.services.drive_service | INFO | Downloading file 1U-7aM_5OXWvqvqW8L3kT_d4-f0qYDLKA (Attempt 1/3)
+2026-03-02 23:28:15 | app.services.drive_service | INFO | Downloaded 14907 bytes successfully
+2026-03-02 23:28:15 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:28:15 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] Extracting text using pdf pipeline
+2026-03-02 23:28:15 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] Extracted 407 characters
+2026-03-02 23:28:15 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] Sending to Groq LLM
+2026-03-02 23:28:15 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 407 characters
+2026-03-02 23:28:17 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:28:17 | app.extractors.llm_extractor | INFO | Successfully extracted invoice 23466
+2026-03-02 23:28:17 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] Successfully extracted invoice 23466
+2026-03-02 23:28:17 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d] All validations passed
+2026-03-02 23:28:17 | app.services.callback_service | INFO | Sending callback for job 643b47e0-15c8-49fa-b8d0-bbce1556155d to http://localhost:5247/api/callback
+2026-03-02 23:28:17 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-02 23:28:17 | app.services.callback_service | INFO | Callback accepted for job 643b47e0-15c8-49fa-b8d0-bbce1556155d
+2026-03-02 23:28:17 | app.worker | INFO | [643b47e0-15c8-49fa-b8d0-bbce1556155d]  Job completed successfully
+2026-03-02 23:52:34 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-02 23:52:34 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 1/4)
+2026-03-02 23:52:34 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-02 23:52:34 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-02 23:52:36 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 2/3)
+2026-03-02 23:52:38 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-02 23:52:38 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:52:38 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-02 23:52:38 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-02 23:52:38 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-02 23:52:38 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-02 23:52:39 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:52:39 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] ✓ Retry scheduled: attempt 1, next at 2026-03-02T18:24:39.895296+00:00
+2026-03-02 23:55:00 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-02 23:55:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 2/4)
+2026-03-02 23:55:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-02 23:55:00 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-02 23:55:00 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-02 23:55:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:55:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-02 23:55:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-02 23:55:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-02 23:55:00 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-02 23:55:02 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:55:02 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] ✓ Retry scheduled: attempt 2, next at 2026-03-02T18:29:02.561240+00:00
+2026-03-02 23:59:27 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-02 23:59:27 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 3/4)
+2026-03-02 23:59:27 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-02 23:59:27 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-02 23:59:29 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-02 23:59:29 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-02 23:59:29 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-02 23:59:29 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-02 23:59:29 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-02 23:59:29 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-02 23:59:31 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-02 23:59:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] ✓ Retry scheduled: attempt 3, next at 2026-03-02T18:37:31.642745+00:00
+2026-03-03 00:07:57 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:07:57 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 4/4)
+2026-03-03 00:07:57 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-03 00:07:57 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-03 00:07:59 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 2/3)
+2026-03-03 00:08:01 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-03 00:08:01 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-03 00:08:01 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-03 00:08:01 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-03 00:08:01 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-03 00:08:01 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-03 00:08:03 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-03 00:08:03 | app.services.callback_service | INFO | Sending callback for job c01e574a-5d3f-49b5-b375-9f06686f0bd3 to http://localhost:5247/api/callback
+2026-03-03 00:08:03 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-03 00:08:03 | app.services.callback_service | INFO | Callback accepted for job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:12:13 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:12:13 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 1/4)
+2026-03-03 00:12:13 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-03 00:12:13 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-03 00:12:15 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 2/3)
+2026-03-03 00:12:18 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-03 00:12:18 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-03 00:12:18 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-03 00:12:18 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-03 00:12:18 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-03 00:12:18 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-03 00:12:20 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-03 00:12:20 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] ✓ Retry scheduled: attempt 1, next at 2026-03-02T18:44:20.413950+00:00
+2026-03-03 00:14:30 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:14:30 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 2/4)
+2026-03-03 00:14:30 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-03 00:14:30 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-03 00:14:31 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-03 00:14:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-03 00:14:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-03 00:14:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-03 00:14:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-03 00:14:31 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-03 00:14:33 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-03 00:14:33 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] ✓ Retry scheduled: attempt 2, next at 2026-03-02T18:48:33.080313+00:00
+2026-03-03 00:18:58 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:18:58 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 3/4)
+2026-03-03 00:18:58 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-03 00:18:58 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-03 00:19:00 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-03 00:19:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-03 00:19:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-03 00:19:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-03 00:19:00 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-03 00:19:00 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-03 00:19:02 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-03 00:19:02 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] ✓ Retry scheduled: attempt 3, next at 2026-03-02T18:57:02.055280+00:00
+2026-03-03 00:27:27 | app.database.job_claimer | INFO | Claimed job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:27:27 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Claimed job (attempt 4/4)
+2026-03-03 00:27:27 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY
+2026-03-03 00:27:27 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 1/3)
+2026-03-03 00:27:29 | app.services.drive_service | INFO | Downloading file 1mFFxsZNhp8TlSBNJfIqVGz61M0cc3xGY (Attempt 2/3)
+2026-03-03 00:27:31 | app.services.drive_service | INFO | Downloaded 7478 bytes successfully
+2026-03-03 00:27:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] MIME: detected=application/pdf, expected=application/pdf
+2026-03-03 00:27:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracting text using pdf pipeline
+2026-03-03 00:27:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Extracted 18 characters
+2026-03-03 00:27:31 | app.worker | INFO | [c01e574a-5d3f-49b5-b375-9f06686f0bd3] Sending to Groq LLM
+2026-03-03 00:27:31 | app.extractors.llm_extractor | INFO | Calling Groq Llama API with 18 characters
+2026-03-03 00:27:33 | httpx | INFO | HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-03 00:27:33 | app.services.callback_service | INFO | Sending callback for job c01e574a-5d3f-49b5-b375-9f06686f0bd3 to http://localhost:5247/api/callback
+2026-03-03 00:27:33 | httpx | INFO | HTTP Request: POST http://localhost:5247/api/callback "HTTP/1.1 200 OK"
+2026-03-03 00:27:33 | app.services.callback_service | INFO | Callback accepted for job c01e574a-5d3f-49b5-b375-9f06686f0bd3
+2026-03-03 00:45:36 | app.main | INFO | FastAPI app stopped

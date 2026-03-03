@@ -43,6 +43,12 @@ namespace invoice_v1.src.Domain.Entities
         /// </summary>
         public JsonDocument? ErrorMessage { get; set; }
 
+        /// <summary>
+        /// Raw extraction result from the AI worker.
+        /// Stored as jsonb.
+        /// </summary>
+        public JsonDocument? ResultJson { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

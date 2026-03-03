@@ -17,8 +17,11 @@ from app.services.mime_detector import (
 from app.services.callback_service import CallbackService
 from app.extractors.image_extractor import extract_text_from_image
 from app.extractors.pdf_extractor import extract_text_from_pdf
+from app.extractors.csv_extractor import extract_text_from_csv
+from app.extractors.docs_extractor import extract_text_from_docx
 from app.extractors.llm_extractor import LLMExtractor
 from app.utils.text_cleaner import preprocess_ocr_text
+from app.utils.currency_converter import convert_to_usd
 from app.utils.validator import validate_invoice_data
 from app.models.invoice import InvoiceData
 
@@ -263,6 +266,10 @@ class InvoiceWorker:
                 raw_text = preprocess_ocr_text(raw_text)
             elif pipeline == ProcessingPipeline.PDF:
                 raw_text = extract_text_from_pdf(file_data)
+            elif pipeline == ProcessingPipeline.CSV:
+                raw_text = extract_text_from_csv(file_data)
+            elif pipeline == ProcessingPipeline.DOCX:
+                raw_text = extract_text_from_docx(file_data)
 
             # Step 6: Validate extracted text
             if not raw_text or len(raw_text) < 18:
@@ -278,6 +285,12 @@ class InvoiceWorker:
             invoice_data = self.llm_extractor.extract_invoice(raw_text)
 
             logger.info(f"[{job_id}] Successfully extracted invoice {invoice_data.InvoiceNumber}")
+
+            # Step 7b: Convert currency to USD if needed
+            if invoice_data.Currency and invoice_data.Currency.upper() != "USD":
+                logger.info(f"[{job_id}] Converting {invoice_data.Currency} to USD")
+                invoice_data = convert_to_usd(invoice_data)
+                logger.info(f"[{job_id}] Currency converted to USD")
 
             # Step 8: Validate invoice data
             is_valid, error_msg = validate_invoice_data(invoice_data)

@@ -29,5 +29,10 @@ namespace invoice_v1.src.Infrastructure.Repositories
                 DateTime startDate,
                 DateTime endDate,
                 Guid? vendorId);
+
+        Task<List<(DateTime InvoiceDate, decimal Amount)>> GetRevenueTrendDataAsync(
+            DateTime startDate,
+            DateTime endDate,
+            Guid? vendorId);
     }
 }

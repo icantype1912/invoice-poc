@@ -1,0 +1,334 @@
+2026-02-25 15:53:14 | app.extractors.llm_extractor | ERROR | Llama extraction failed: 7 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductName
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductId
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.Quantity
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+LineItems.0.UnitRate
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 116, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 7 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductName
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductId
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.Quantity
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+LineItems.0.UnitRate
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+2026-02-25 15:53:14 | app.worker | ERROR | [d77543c8-b5e1-47c9-a66a-320af1e52a0d] Processing failed: LLM extraction failed: 7 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductName
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductId
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.Quantity
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+LineItems.0.UnitRate
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 116, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 7 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductName
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductId
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.Quantity
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+LineItems.0.UnitRate
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\worker.py", line 278, in _process_job
+    invoice_data = self.llm_extractor.extract_invoice(raw_text)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 127, in extract_invoice
+    raise Exception(f"LLM extraction failed: {str(e)}")
+Exception: LLM extraction failed: 7 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductName
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.ProductId
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems.0.Quantity
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+LineItems.0.UnitRate
+  Input should be greater than 0 [type=greater_than, input_value=0, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.6/v/greater_than
+2026-02-25 15:57:47 | app.extractors.llm_extractor | ERROR | Llama extraction failed: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 116, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+2026-02-25 15:57:47 | app.worker | ERROR | [d77543c8-b5e1-47c9-a66a-320af1e52a0d] Processing failed: LLM extraction failed: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 116, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\worker.py", line 278, in _process_job
+    invoice_data = self.llm_extractor.extract_invoice(raw_text)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 127, in extract_invoice
+    raise Exception(f"LLM extraction failed: {str(e)}")
+Exception: LLM extraction failed: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+2026-02-25 16:06:16 | app.extractors.llm_extractor | ERROR | Llama extraction failed: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 116, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+2026-02-25 16:06:16 | app.worker | ERROR | [d77543c8-b5e1-47c9-a66a-320af1e52a0d] Processing failed: LLM extraction failed: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 116, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\worker.py", line 278, in _process_job
+    invoice_data = self.llm_extractor.extract_invoice(raw_text)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 127, in extract_invoice
+    raise Exception(f"LLM extraction failed: {str(e)}")
+Exception: LLM extraction failed: 5 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+InvoiceDate
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+TotalAmount
+  Input should be a valid number [type=float_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/float_type
+2026-02-25 16:06:17 | app.worker | ERROR | [d77543c8-b5e1-47c9-a66a-320af1e52a0d] ❌ Job failed permanently

@@ -1,7 +1,8 @@
-import { Component, computed, signal, HostListener } from '@angular/core';
+import { Component, computed, signal, HostListener, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Theme } from '../../services/theme';
 import { Auth } from '../../services/auth';
+import { ChatbotService } from '../../services/chatbot.service';
 
 @Component({
   selector: 'app-navbar',
@@ -27,6 +28,12 @@ export class Navbar {
     public auth: Auth,
     private router: Router
   ) { }
+
+  public chatbotService = inject(ChatbotService);
+
+  get showChatToggle(): boolean {
+    return this.isLoggedIn && this.router.url.startsWith('/dashboard');
+  }
 
   get isLoggedIn(): boolean {
     return this.auth.isLoggedIn;

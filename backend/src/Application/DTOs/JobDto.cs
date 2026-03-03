@@ -15,6 +15,7 @@ namespace invoice_v1.src.Application.DTOs
         public DateTime UpdatedAt { get; set; }
         public JsonDocument? PayloadJson { get; set; }
         public JsonDocument? ErrorMessage { get; set; }
+        public JsonDocument? ResultJson { get; set; }
     }
 
     public class JobListResponse

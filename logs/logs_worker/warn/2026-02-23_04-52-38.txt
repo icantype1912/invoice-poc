@@ -1,0 +1,6 @@
+2026-02-23 11:38:04 | app.services.drive_service | WARNING | Connection broken during chunk download: EOF occurred in violation of protocol (_ssl.c:2427)
+2026-02-23 11:38:04 | app.services.drive_service | WARNING | Download failed for 14R27FwGJJhv5XTYxm8bRnAzTII_JUmrg (Attempt 1): EOF occurred in violation of protocol (_ssl.c:2427)
+2026-02-23 11:38:07 | app.services.drive_service | WARNING | Connection broken during chunk download: EOF occurred in violation of protocol (_ssl.c:2427)
+2026-02-23 11:38:07 | app.services.drive_service | WARNING | Download failed for 14R27FwGJJhv5XTYxm8bRnAzTII_JUmrg (Attempt 2): EOF occurred in violation of protocol (_ssl.c:2427)
+2026-02-23 11:38:12 | app.worker | WARNING | [7ca2769f-ddd7-40b6-8b21-25695c8ca9ae] 🔄 Scheduling retry 1/3 in 2 minutes (at 06:10:12 UTC)
+2026-02-23 11:40:44 | app.worker | WARNING | [7ca2769f-ddd7-40b6-8b21-25695c8ca9ae] 🔄 Scheduling retry 2/3 in 4 minutes (at 06:14:44 UTC)

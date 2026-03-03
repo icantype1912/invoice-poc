@@ -25,11 +25,13 @@ namespace invoice_v1.src.Api.Controllers
         public async Task<IActionResult> GetLogs(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
-            [FromQuery] string? changeType = null)
+            [FromQuery] string? changeType = null,
+            [FromQuery] Guid? vendorId = null)
         {
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
-            var result = await _fileChangeLogService.GetLogsAsync(vendorId, changeType, page, pageSize);
+            var result = await _fileChangeLogService.GetLogsAsync(filterId, changeType, page, pageSize);
 
             return Ok(result);
         }

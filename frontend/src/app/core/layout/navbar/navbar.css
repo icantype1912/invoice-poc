@@ -135,7 +135,7 @@
   right: 0;
   top: calc(100% + 8px);
   min-width: 180px;
-  background: var(--bg-elevated);
+  background: var(--bg-elevated, #ffffff);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -196,4 +196,11 @@
 
 .logout-item:hover {
   background: rgba(255, 80, 80, 0.08);
+}
+
+/* ─── Chatbot toggle active state ──────────────────────────────── */
+.theme-btn.active-chat {
+  background: rgba(168, 85, 247, 0.25);
+  color: #a855f7;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
 }

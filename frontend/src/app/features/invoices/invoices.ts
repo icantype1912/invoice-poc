@@ -1,7 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { ApiService, InvoiceDto, InvoicesResponse, InvalidInvoice, InvalidInvoicesResponse } from '../../core/services/api.service';
 import { Auth } from '../../core/services/auth';
+import { environment } from '../../../environments/environment';
+
+type Vendor = { id: string; email: string; companyName?: string; role: number };
 
 @Component({
   selector: 'app-invoices',
@@ -13,6 +17,7 @@ import { Auth } from '../../core/services/auth';
 export class Invoices implements OnInit {
   private api = inject(ApiService);
   private auth = inject(Auth);
+  private http = inject(HttpClient);
 
   get isAdmin() {
     return typeof (this.auth as any).isAdmin === 'function'
@@ -32,17 +37,36 @@ export class Invoices implements OnInit {
   invalidTotal = signal(0);
   invalidOpen = signal(false);
 
+  vendors = signal<Vendor[]>([]);
+  selectedVendorId = signal<string>('');
+
   expandedInvoiceId = signal<string | null>(null);
   isLoading = signal(false);
 
   ngOnInit(): void {
+    if (this.isAdmin) this.loadVendors();
+    this.loadValid();
+    this.loadInvalid();
+  }
+
+  loadVendors(): void {
+    this.http.get<Vendor[]>(`${environment.apiUrl}/admin/users`).subscribe({
+      next: (users) => this.vendors.set((users || []).filter(u => u.role === 1)),
+      error: () => { }
+    });
+  }
+
+  onVendorChange(event: Event): void {
+    this.selectedVendorId.set((event.target as HTMLSelectElement).value);
+    this.validPage.set(1);
+    this.invalidPage.set(1);
     this.loadValid();
     this.loadInvalid();
   }
 
   loadValid(): void {
     this.isLoading.set(true);
-    this.api.getInvoices(this.validPage(), 20).subscribe({
+    this.api.getInvoices(this.validPage(), 20, this.selectedVendorId() || undefined).subscribe({
       next: (res: InvoicesResponse) => {
         this.validInvoices.set(res.invoices ?? []);
         this.validTotalPages.set(res.totalPages ?? 1);

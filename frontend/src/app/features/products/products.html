@@ -4,6 +4,17 @@
       <h1 class="page-title">Products</h1>
       <p class="page-subtitle">All processed products and their sales</p>
     </div>
+    @if (isAdmin && vendors().length > 0) {
+    <div class="vendor-select-wrap">
+      <label class="vendor-label">Vendor</label>
+      <select class="vendor-select" (change)="onVendorChange($event)" [value]="selectedVendorId()">
+        <option value="">All Vendors</option>
+        @for (v of vendors(); track v.id) {
+        <option [value]="v.id">{{ v.companyName || v.email }}</option>
+        }
+      </select>
+    </div>
+    }
   </div>
   <div class="section-panel">
     <div class="section-body" style="padding-top: 22px;">

@@ -4,6 +4,19 @@
       <h1 class="page-title">File Change Logs</h1>
       <p class="page-subtitle">Track file activities and security checks</p>
     </div>
+    <div class="header-actions">
+      @if (isAdmin && vendors().length > 0) {
+      <div class="vendor-select-wrap">
+        <label class="vendor-label">Vendor</label>
+        <select class="vendor-select" (change)="onVendorChange($event)" [value]="selectedVendorId()">
+          <option value="">All Vendors</option>
+          @for (v of vendors(); track v.id) {
+          <option [value]="v.id">{{ v.companyName || v.email }}</option>
+          }
+        </select>
+      </div>
+      }
+    </div>
   </div>
 
   <div class="section-panel">

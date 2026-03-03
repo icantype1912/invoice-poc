@@ -1,0 +1,142 @@
+2026-02-23 11:38:12 | app.extractors.llm_extractor | ERROR | Llama extraction failed: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 117, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+2026-02-23 11:38:12 | app.worker | ERROR | [7ca2769f-ddd7-40b6-8b21-25695c8ca9ae] Processing failed: LLM extraction failed: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 117, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\worker.py", line 280, in _process_job
+    invoice_data = self.llm_extractor.extract_invoice(raw_text)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 128, in extract_invoice
+    raise Exception(f"LLM extraction failed: {str(e)}")
+Exception: LLM extraction failed: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+2026-02-23 11:40:44 | app.extractors.llm_extractor | ERROR | Llama extraction failed: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 117, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+2026-02-23 11:40:44 | app.worker | ERROR | [7ca2769f-ddd7-40b6-8b21-25695c8ca9ae] Processing failed: LLM extraction failed: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 117, in extract_invoice
+    invoice_data = InvoiceData(**invoice_dict)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\venv\Lib\site-packages\pydantic\main.py", line 171, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\worker.py", line 280, in _process_job
+    invoice_data = self.llm_extractor.extract_invoice(raw_text)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\vivek.singh\OneDrive - AVEVA Solutions Limited\vivek_projects\invoice-poc\worker\app\extractors\llm_extractor.py", line 128, in extract_invoice
+    raise Exception(f"LLM extraction failed: {str(e)}")
+Exception: LLM extraction failed: 3 validation errors for InvoiceData
+InvoiceNumber
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+BillTo.Name
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.6/v/string_type
+LineItems
+  List should have at least 1 item after validation, not 0 [type=too_short, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.6/v/too_short

@@ -77,11 +77,13 @@ namespace invoice_v1.src.Api.Controllers
         [ProducesResponseType(typeof(InvoiceListResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetInvoices(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int pageSize = 50,
+            [FromQuery] Guid? vendorId = null)
         {
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
-            var (invoices, total) = await _invoiceService.GetInvoicesAsync(vendorId, page, pageSize);
+            var (invoices, total) = await _invoiceService.GetInvoicesAsync(filterId, page, pageSize);
 
             var response = new InvoiceListResponse
             {

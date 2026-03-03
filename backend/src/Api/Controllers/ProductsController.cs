@@ -27,12 +27,14 @@ namespace invoice_v1.src.Api.Controllers
             [FromQuery] string? category = null,
             [FromQuery] string? search = null,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int pageSize = 50,
+            [FromQuery] Guid? vendorId = null)
         {
-            var vendorId = GetVendorIdIfVendor();
+            var currentVendorId = GetVendorIdIfVendor();
+            var filterId = IsAdmin ? vendorId : currentVendorId;
 
             var response = await _productService.GetProductsAsync(
-                vendorId,
+                filterId,
                 category,
                 search,
                 page,
