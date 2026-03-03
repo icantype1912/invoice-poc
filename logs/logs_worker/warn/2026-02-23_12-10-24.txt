@@ -1,2 +1,0 @@
-2026-02-23 17:41:22 | app.services.mime_detector | WARNING | MIME type mismatch: detected=application/x-dosexec, expected=application/pdf
-2026-02-23 17:41:23 | app.worker | WARNING | [d8c74a18-e885-4936-9393-ef5ac8f51d13] ⚠️ Job marked as INVALID

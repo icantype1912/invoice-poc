@@ -1,5 +1,5 @@
 # ===========================================
-# SECRETS - NEVER COMMIT
+# 1. SECRETS & AUTH (NEVER COMMIT)
 # ===========================================
 .env
 .env.*
@@ -8,44 +8,109 @@ secrets/
 !secrets/.gitignore
 !secrets/*.template
 
+# Global Key Patterns
+service-account-key.json
+invoice-*-*.json
+*.json.key
+Drive.Personal.Auth/
+
+# Backend Specific Configs
+backend/appsettings.json
+backend/appsettings.*.json
+# Allowing specific local backups seen in your screenshots
+backend/*.Backup.tmp
+
 # ===========================================
-# BUILD OUTPUTS
+# 2. BUILD OUTPUTS & DEPENDENCIES
 # ===========================================
+# C# / .NET
 **/bin/
 **/obj/
 **/[Dd]ebug/
 **/[Rr]elease/
+packages/
+*.nupkg
 
-# ===========================================
-# PYTHON
-# ===========================================
+# Node / Angular
+**/node_modules/
+/dist/
+/tmp/
+/out-tsc/
+/bazel-out/
+/.angular/cache/
+.sass-cache/
+
+# Python
 **/__pycache__/
 **/*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ===========================================
+# 3. VIRTUAL ENVS & WORKER SPECIFIC
+# ===========================================
 **/venv/
 **/env/
+**/ENV/
 **/.venv/
+**/venv312/
+worker/.ruff_cache/
 
 # ===========================================
-# IDEs
+# 4. LOGS & DIAGNOSTICS
 # ===========================================
-.vs/
-.vscode/
-.idea/
-*.swp
-*.swo
-
-
-# ===========================================
-# OS
-# ===========================================
-.DS_Store
-Thumbs.db
+**/logs/
+*.log
+npm-debug.log
+yarn-error.log
+testem.log
+/libpeerconnection.log
+/coverage/
 
 # ===========================================
-# DATABASE
+# 5. DATABASE & MIGRATIONS
 # ===========================================
 **/*.mdf
 **/*.ldf
-b a c k e n d / * . j s o n 
- 
- docker-compose.yml
+# As requested: Ignoring backend migrations
+backend/Migrations/
+
+# ===========================================
+# 6. IDEs & EDITORS
+# ===========================================
+.vs/
+.idea/
+.project
+.classpath
+.c9/
+.settings/
+*.swp
+*.swo
+*.sublime-workspace
+*.launch
+.history/*
+
+# Visual Studio / C# User Files
+*.user
+*.rsuser
+*.sln.user
+*.csproj.user
+
+# VS Code (Allowing shared workspace settings)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ===========================================
+# 7. OS & MISC
+# ===========================================
+.DS_Store
+Thumbs.db
+__screenshots__/
+/typings/
+/connect.lock
+# You mentioned this specifically in the previous prompt
+docker-compose.yml
