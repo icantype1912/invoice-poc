@@ -3,7 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-      "cache": {
+    "cache": {
       "enabled": false
     },
     "analytics": "e57c3875-b95b-4d9f-a7d8-532795c4bf50"
@@ -32,11 +32,7 @@
               "src/material-theme.scss",
               "src/styles.css"
             ],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
-            "ssr": {
-              "entry": "src/server.ts"
-            },
+            "outputMode": "static",
             "prerender": false
           },
           "configurations": {
