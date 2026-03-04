@@ -36,7 +36,7 @@
     "@angular/ssr": "^21.1.2",
     "express": "^5.1.0",
     "jwt-decode": "^4.0.0",
-    "node-modules": "^1.0.1",
+    "node-modules": "^0.0.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
