@@ -7,8 +7,7 @@ RUN npm install
 
 COPY . .
 
-# Build SSR app
-RUN npm run build
+RUN NG_DISABLE_ROUTE_EXTRACTION=true npm run build
 
 # ===== Runtime Stage =====
 FROM node:20-alpine
