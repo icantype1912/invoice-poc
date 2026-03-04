@@ -19,6 +19,8 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
+
+ENV NG_DISABLE_ROUTE_EXTRACTION=true
 RUN npm install --omit=dev
 
 EXPOSE 4200
