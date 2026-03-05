@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class LLMExtractor:
     """Groq Llama-3 based invoice data extractor."""
 
-    def __init__(self, api_key: str, model: str = "llama-3.3-70b-versatile"):
+    def __init__(self, api_key: str, model: str = "llama-4-70b-versatile"):
         self.client = Groq(api_key=api_key)
         self.model = model
         logger.info(f"Initialized LLM extractor with model: {model}")
@@ -43,7 +43,7 @@ class LLMExtractor:
       "Category": "string or null (e.g., Office, Electronics)",
       "ProductId": "string (REQUIRED - Extract SKU or generate slug from name)",
       "Quantity": number (REQUIRED),
-      "UnitRate": number (REQUIRED),
+      "UnitRate": number (REQUIRED - Extract Rate or Unit Price or Unit Rate or Price Per Unit),
       "Amount": number (REQUIRED)
     }
   ],
