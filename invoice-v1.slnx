@@ -1,5 +1,7 @@
 <Solution>
+  <Folder Name="/backend/" />
   <Folder Name="/tests/">
+    <Project Path="tests/Invoice-v1.IntegrationTests/Invoice-v1.IntegrationTests.csproj" />
     <Project Path="tests/Invoice-v1.UnitTests/Invoice-v1.UnitTests.csproj" />
   </Folder>
   <Project Path="backend\invoice-v1.csproj" />
