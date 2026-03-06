@@ -8,6 +8,15 @@ export default defineConfig({
       framework: "angular",
       bundler: "webpack",
     },
-    specPattern: "**/*.cy.ts",
+    specPattern: "cypress/component/**/*.cy.ts",
+  },
+
+  e2e: {
+    baseUrl: "http://localhost:4200",
+    specPattern: "cypress/e2e/**/*.cy.ts",
+
+    setupNodeEvents(on, config) {
+      return config;
+    },
   },
 });
