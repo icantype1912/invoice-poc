@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Invoice-v1.IntegrationTests": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:61026;http://localhost:61027"
+    }
+  }
+}

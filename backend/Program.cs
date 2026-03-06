@@ -204,3 +204,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// This is a public marker class specifically for integration tests
+public class IApiMarker { }
