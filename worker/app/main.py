@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Invoice Processing Worker",
-    description="AI-powered invoice extraction worker with Groq Llama-4 integration",
+    description="AI-powered invoice extraction worker with llama oss integration",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -69,7 +69,7 @@ def root():
         "service": "Invoice Processing Worker",
         "version": "1.0.0",
         "status": "running",
-        "llm_model": "Llama-4"
+        "llm_model": "llama-oss-120b"
     }
 
 

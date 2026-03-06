@@ -147,12 +147,12 @@ class InvoiceWorker:
                         self.logger.info(f"[{job_id}]  Job completed successfully")
                     elif callback_data["status"] == "INVALID":
                         self.stats["jobs_invalid"] += 1
-                        self.logger.warning(f"[{job_id}] ⚠️ Job marked as INVALID")
+                        self.logger.warning(f"[{job_id}] Job marked as INVALID")
                     elif callback_data["status"] == "FAILED":
                         self.stats["jobs_failed"] += 1
-                        self.logger.error(f"[{job_id}] ❌ Job failed permanently")
+                        self.logger.error(f"[{job_id}]  Job failed permanently")
                 else:
-                    self.logger.error(f"[{job_id}] ⚠️ Failed to send callback to backend")
+                    self.logger.error(f"[{job_id}]  Failed to send callback to backend")
 
             except Exception as e:
                 self.logger.error(f"[{job_id}] Error sending callback: {e}", exc_info=True)
@@ -208,7 +208,7 @@ class InvoiceWorker:
 
         except Exception as e:
             self.job_claimer.connection.rollback()
-            self.logger.error(f"[{job_id}] ❌ Failed to schedule retry: {e}", exc_info=True)
+            self.logger.error(f"[{job_id}]  Failed to schedule retry: {e}", exc_info=True)
         finally:
             cursor.close()
 

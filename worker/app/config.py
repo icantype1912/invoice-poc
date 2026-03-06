@@ -25,7 +25,7 @@ class Config(BaseSettings):
     # Groq LLM Configuration
     groq_api_key: str = Field(..., description="Groq API key")
     groq_model: str = Field(
-        default="llama-4-70b-versatile",
+        default="llama-3.3-70b-versatile",
         description="Groq model identifier"
     )
 

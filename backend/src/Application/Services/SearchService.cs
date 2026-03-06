@@ -247,7 +247,7 @@ namespace invoice_v1.src.Application.Services
                 ?? throw new InvalidOperationException("Groq:ApiKey not configured.");
 
             var groqModel = _configuration["Groq:Model"]
-                ?? "llama-4-70b-versatile";
+                ?? "llama-3.3-70b-versatile";
 
             var vendorConstraint = isVendor && vendorId.HasValue
                 ? $"""

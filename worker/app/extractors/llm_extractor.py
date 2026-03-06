@@ -6,9 +6,9 @@ from app.models.invoice import InvoiceData
 logger = logging.getLogger(__name__)
 
 class LLMExtractor:
-    """Groq Llama-3 based invoice data extractor."""
+    """Groq llama-3 based invoice data extractor."""
 
-    def __init__(self, api_key: str, model: str = "llama-4-70b-versatile"):
+    def __init__(self, api_key: str, model: str = "llama-3.3-70b-versatile"):
         self.client = Groq(api_key=api_key)
         self.model = model
         logger.info(f"Initialized LLM extractor with model: {model}")
@@ -69,7 +69,7 @@ class LLMExtractor:
 
     def extract_invoice(self, raw_text: str) -> InvoiceData:
         """
-        Extract structured invoice data from raw text using Groq Llama.
+        Extract structured invoice data from raw text using Groq llama.
         Args:
             raw_text: Extracted text from OCR or PDF
         Returns:
@@ -85,7 +85,7 @@ Return only valid JSON matching the required structure.
 IMPORTANT: VendorName is the SELLER/COMPANY issuing the invoice (like "SuperStore", "Amazon", etc.)"""
 
         try:
-            logger.info(f"Calling Groq Llama API with {len(raw_text)} characters")
+            logger.info(f"Calling Groq llama API with {len(raw_text)} characters")
 
             # Call Groq API
             chat_completion = self.client.chat.completions.create(
@@ -101,7 +101,7 @@ IMPORTANT: VendorName is the SELLER/COMPANY issuing the invoice (like "SuperStor
 
             # Extract response
             response_text = chat_completion.choices[0].message.content
-            logger.debug(f"Llama response: {len(response_text)} characters")
+            logger.debug(f"llama response: {len(response_text)} characters")
 
             # Parse JSON
             invoice_dict = json.loads(response_text)
@@ -114,8 +114,8 @@ IMPORTANT: VendorName is the SELLER/COMPANY issuing the invoice (like "SuperStor
             return invoice_data
 
         except json.JSONDecodeError as e:
-            logger.error(f"Llama returned invalid JSON: {e}")
+            logger.error(f"llama returned invalid JSON: {e}")
             raise Exception(f"LLM returned invalid JSON: {str(e)}")
         except Exception as e:
-            logger.error(f"Llama extraction failed: {e}", exc_info=True)
+            logger.error(f"llama extraction failed: {e}", exc_info=True)
             raise Exception(f"LLM extraction failed: {str(e)}")
