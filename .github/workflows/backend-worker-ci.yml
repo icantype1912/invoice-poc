@@ -1,31 +1,157 @@
-name: Backend Worker CI
+name: Full CI Pipeline
 
 on:
   push:
     branches: [main]
+  pull_request:
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  build:
-    runs-on: ubuntu-latest 
-    steps:
-    - name: Login to GHCR
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u icantype1912 --password-stdin
-    - uses: actions/checkout@v4
-    - name: Build backend Image
-      run: |
-        docker build -t ghcr.io/icantype1912/backend:latest ./backend
-        docker push ghcr.io/icantype1912/backend:latest
-    - name: Build worker image
-      run: |
-        docker build -t ghcr.io/icantype1912/worker:latest ./worker
-        docker push ghcr.io/icantype1912/worker:latest
-    - name: Build frontend image
-      run: |
-        docker build -t ghcr.io/icantype1912/frontend:latest ./frontend
-        docker push ghcr.io/icantype1912/frontend:latest
 
-  
+# ------------------------
+# BACKEND TESTS
+# ------------------------
+
+  backend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore ./backend
+
+      - name: Build backend
+        run: dotnet build ./backend --no-restore
+
+      - name: Run backend tests
+        run: dotnet test ./backend --no-build
+
+
+# ------------------------
+# WORKER TESTS
+# ------------------------
+
+  worker-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install worker dependencies
+        working-directory: ./worker
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run worker tests
+        working-directory: ./worker
+        run: pytest
+
+
+# ------------------------
+# FRONTEND TESTS
+# ------------------------
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Run Vitest unit tests
+        working-directory: ./frontend
+        run: npm run test
+
+      - name: Run Cypress Component Tests
+        working-directory: ./frontend
+        run: npx cypress run --component
+
+
+# ------------------------
+# CYPRESS E2E
+# ------------------------
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Start backend
+        run: |
+          docker compose up -d backend
+
+      - name: Start frontend
+        working-directory: ./frontend
+        run: |
+          npm run start &
+
+      - name: Wait for services
+        run: sleep 20
+
+      - name: Run Cypress E2E
+        working-directory: ./frontend
+        run: npx cypress run --e2e
+
+
+# ------------------------
+# BUILD + PUSH IMAGES
+# ------------------------
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, worker-tests, frontend-tests, e2e-tests]
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u icantype1912 --password-stdin
+
+      - name: Build backend image
+        run: |
+          docker build -t ghcr.io/icantype1912/backend:latest ./backend
+          docker push ghcr.io/icantype1912/backend:latest
+
+      - name: Build worker image
+        run: |
+          docker build -t ghcr.io/icantype1912/worker:latest ./worker
+          docker push ghcr.io/icantype1912/worker:latest
+
+      - name: Build frontend image
+        run: |
+          docker build -t ghcr.io/icantype1912/frontend:latest ./frontend
+          docker push ghcr.io/icantype1912/frontend:latest
