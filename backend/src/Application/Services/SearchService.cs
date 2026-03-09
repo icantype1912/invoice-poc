@@ -1,7 +1,10 @@
 ﻿using invoice_v1.src.Application.DTOs;
 using invoice_v1.src.Application.Interfaces;
 using invoice_v1.src.Application.Services;
+using invoice_v1.src.Infrastructure.Data;
 using invoice_v1.src.Infrastructure.Repositories;
+using invoice_v1.src.Domain.Entities;
+using invoice_v1.src.Domain.Enums;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -15,6 +18,7 @@ namespace invoice_v1.src.Application.Services
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<SearchService> _logger;
+        private readonly ApplicationDbContext _db;
 
         private const string SchemaContext = """
             PostgreSQL database schema (READ-ONLY access):
@@ -102,12 +106,14 @@ namespace invoice_v1.src.Application.Services
             """;
 
         public SearchService(
+            ApplicationDbContext db,
             ISearchRepository searchRepository,
             IRateLimitService rateLimitService,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
             ILogger<SearchService> logger)
         {
+            _db = db;
             _searchRepository = searchRepository;
             _rateLimitService = rateLimitService;
             _configuration = configuration;
@@ -128,6 +134,27 @@ namespace invoice_v1.src.Application.Services
                     window: TimeSpan.FromMinutes(1)))
             {
                 _logger.LogWarning("Search rate limit hit for user {UserId}", userId);
+
+                // Log rate-limited event (best-effort)
+                try
+                {
+                    var rlLog = new SearchLog
+                    {
+                        UserId = Guid.Parse(userId),
+                        VendorId = vendorId,
+                        NaturalLanguageQuery = query,
+                        GeneratedSql = null,
+                        Status = SearchLogStatus.RateLimited,
+                        RejectionReason = "Rate limited",
+                        CreatedAt = DateTimeOffset.UtcNow
+                    };
+                    await SafeSaveSearchLogAsync(rlLog);
+                }
+                catch
+                {
+                    // swallow - SafeSaveSearchLogAsync already swallows DB errors, but keep this try to be extra-safe
+                }
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -147,6 +174,20 @@ namespace invoice_v1.src.Application.Services
             {
                 _logger.LogWarning(
                     "Search input rejected for user {UserId}: {Reason}", userId, ex.Message);
+
+                // Log sanitisation rejection (best-effort)
+                var sanitiseLog = new SearchLog
+                {
+                    UserId = Guid.Parse(userId),
+                    VendorId = vendorId,
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = null,
+                    Status = SearchLogStatus.InputRejected,
+                    RejectionReason = ex.Message,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await SafeSaveSearchLogAsync(sanitiseLog);
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -168,6 +209,20 @@ namespace invoice_v1.src.Application.Services
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {
                 _logger.LogError("LLM SQL generation failed due to rate limiting (429).");
+
+                // Log LLM rate-limit failure (best-effort)
+                var groqRateLog = new SearchLog
+                {
+                    UserId = Guid.Parse(userId),
+                    VendorId = vendorId,
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = null,
+                    Status = SearchLogStatus.RateLimited,
+                    RejectionReason = "LLM rate limited (429)",
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await SafeSaveSearchLogAsync(groqRateLog);
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -177,6 +232,20 @@ namespace invoice_v1.src.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "LLM SQL generation failed for user {UserId}", userId);
+
+                // Log LLM generation failure (best-effort)
+                var groqFailLog = new SearchLog
+                {
+                    UserId = Guid.Parse(userId),
+                    VendorId = vendorId,
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = null,
+                    Status = SearchLogStatus.LlmFailed,
+                    RejectionReason = ex.Message,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await SafeSaveSearchLogAsync(groqFailLog);
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -196,6 +265,19 @@ namespace invoice_v1.src.Application.Services
                     "Generated SQL rejected for user {UserId}. Reason: {Reason}. SQL: {Sql}",
                     userId, rejectionReason, sql);
 
+                // Persist rejection (best-effort)
+                var rejectLog = new SearchLog
+                {
+                    UserId = Guid.Parse(userId),
+                    VendorId = vendorId,
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = sql,
+                    Status = SearchLogStatus.SqlRejected,
+                    RejectionReason = rejectionReason,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await SafeSaveSearchLogAsync(rejectLog);
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -214,6 +296,20 @@ namespace invoice_v1.src.Application.Services
                     "Search completed for user {UserId}: {RowCount} rows. Query: {Query}",
                     userId, rows.Count, sanitisedQuery);
 
+                // Persist success (best-effort)
+                var successLog = new SearchLog
+                {
+                    UserId = Guid.Parse(userId),
+                    VendorId = vendorId,
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = sql,
+                    Status = SearchLogStatus.Success,
+                    RowCount = rows.Count,
+                    ExecutionMs = null,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await SafeSaveSearchLogAsync(successLog);
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -226,6 +322,20 @@ namespace invoice_v1.src.Application.Services
             {
                 _logger.LogError(ex,
                     "Search SQL execution failed for user {UserId}. SQL: {Sql}", userId, sql);
+
+                // Persist execution failure (best-effort)
+                var execFailLog = new SearchLog
+                {
+                    UserId = Guid.Parse(userId),
+                    VendorId = vendorId,
+                    NaturalLanguageQuery = query,
+                    GeneratedSql = sql,
+                    Status = SearchLogStatus.ExecutionFailed,
+                    RejectionReason = ex.Message,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await SafeSaveSearchLogAsync(execFailLog);
+
                 return new SearchResultDto
                 {
                     NaturalLanguageQuery = query,
@@ -414,7 +524,7 @@ namespace invoice_v1.src.Application.Services
             return rawSql;
         }
 
-        // ── Safety net: inject vendor scope if LLM omitted it ─────────────────
+        // ── Safety net: inject vendor scope if LLM forgot it ─────────────────
 
         private static string InjectVendorScopeIfMissing(string sql, Guid vendorId)
         {
@@ -554,6 +664,23 @@ namespace invoice_v1.src.Application.Services
                     return $"LIMIT {val}";
                 },
                 RegexOptions.IgnoreCase);
+        }
+
+        // ── Helper: safe logging to SearchLogs (never throw) ────────────────
+
+        private async Task SafeSaveSearchLogAsync(SearchLog log)
+        {
+            try
+            {
+                // Add and attempt to save; any failure is logged but swallowed so we don't impact search behavior.
+                await _db.SearchLogs.AddAsync(log);
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception dbEx)
+            {
+                // Log the DB failure but do not rethrow — the search functionality must remain unchanged.
+                _logger.LogError(dbEx, "Failed to persist SearchLog (non-fatal). Log: {@Log}", log);
+            }
         }
     }
 }

@@ -17,6 +17,7 @@ namespace invoice_v1.src.Infrastructure.Data
         public DbSet<Invoice> Invoices => Set<Invoice>();
         public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
         public DbSet<InvalidInvoice> InvalidInvoices => Set<InvalidInvoice>();
+        public DbSet<SearchLog> SearchLogs => Set<SearchLog>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
