@@ -69,7 +69,7 @@ def root():
         "service": "Invoice Processing Worker",
         "version": "1.0.0",
         "status": "running",
-        "llm_model": "llama-oss-120b"
+        "llm_model": "llama-3.3-70b-versatile"
     }
 
 

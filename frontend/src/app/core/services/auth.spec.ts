@@ -3,13 +3,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { PLATFORM_ID } from '@angular/core';
 import { Auth } from './auth';
 import { vi } from 'vitest';
-
-// Proper ESM mock
-vi.mock('jwt-decode', () => ({
-  jwtDecode: vi.fn()
-}));
-
-import { jwtDecode } from 'jwt-decode';
+import * as jwt from 'jwt-decode';
 
 describe('Auth Service (Senior Suite)', () => {
   let service: Auth;
@@ -30,7 +24,7 @@ describe('Auth Service (Senior Suite)', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
     setup('browser');
   });
 
@@ -73,7 +67,7 @@ describe('Auth Service (Senior Suite)', () => {
   });
 
   // ===================================================
-  // TOKEN STORAGE (Browser)
+  // TOKEN STORAGE
   // ===================================================
 
   it('should store and retrieve token in browser', () => {
@@ -96,47 +90,50 @@ describe('Auth Service (Senior Suite)', () => {
     expect(service.isLoggedIn).toBe(true);
   });
 
-
-
   // ===================================================
   // ROLE EXTRACTION
   // ===================================================
 
   it('should extract role from role claim', () => {
-    (jwtDecode as any).mockReturnValue({ role: 'Admin' });
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ role: 'Admin' } as any);
+
     service.setToken('token');
     expect(service.getRole()).toBe('Admin');
   });
 
   it('should extract role from C# schema claim', () => {
-    (jwtDecode as any).mockReturnValue({
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({
       'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Vendor'
-    });
+    } as any);
 
     service.setToken('token');
     expect(service.getRole()).toBe('Vendor');
   });
 
   it('should return null when role claim missing', () => {
-    (jwtDecode as any).mockReturnValue({});
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({} as any);
+
     service.setToken('token');
     expect(service.getRole()).toBeNull();
   });
 
   it('should return true for isAdmin (case insensitive)', () => {
-    (jwtDecode as any).mockReturnValue({ role: 'ADMIN' });
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ role: 'ADMIN' } as any);
+
     service.setToken('token');
     expect(service.isAdmin).toBe(true);
   });
 
   it('should return false for isAdmin when role is vendor', () => {
-    (jwtDecode as any).mockReturnValue({ role: 'vendor' });
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ role: 'vendor' } as any);
+
     service.setToken('token');
     expect(service.isAdmin).toBe(false);
   });
 
   it('should return true for isUser when role is vendor', () => {
-    (jwtDecode as any).mockReturnValue({ role: 'vendor' });
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ role: 'vendor' } as any);
+
     service.setToken('token');
     expect(service.isUser).toBe(true);
   });
@@ -146,13 +143,15 @@ describe('Auth Service (Senior Suite)', () => {
   // ===================================================
 
   it('should extract userId from sub claim', () => {
-    (jwtDecode as any).mockReturnValue({ sub: '123' });
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ sub: '123' } as any);
+
     service.setToken('token');
     expect(service.getUserId()).toBe('123');
   });
 
   it('should return null when userId claim missing', () => {
-    (jwtDecode as any).mockReturnValue({});
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({} as any);
+
     service.setToken('token');
     expect(service.getUserId()).toBeNull();
   });
@@ -162,22 +161,24 @@ describe('Auth Service (Senior Suite)', () => {
   // ===================================================
 
   it('should extract email from email claim', () => {
-    (jwtDecode as any).mockReturnValue({ email: 'a@test.com' });
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ email: 'a@test.com' } as any);
+
     service.setToken('token');
     expect(service.getEmail()).toBe('a@test.com');
   });
 
   it('should fallback to schema email claim', () => {
-    (jwtDecode as any).mockReturnValue({
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({
       'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'b@test.com'
-    });
+    } as any);
 
     service.setToken('token');
     expect(service.getEmail()).toBe('b@test.com');
   });
 
   it('should return null when email missing', () => {
-    (jwtDecode as any).mockReturnValue({});
+    vi.spyOn(jwt, 'jwtDecode').mockReturnValue({} as any);
+
     service.setToken('token');
     expect(service.getEmail()).toBeNull();
   });
@@ -187,7 +188,7 @@ describe('Auth Service (Senior Suite)', () => {
   // ===================================================
 
   it('should return null if jwt decoding throws', () => {
-    (jwtDecode as any).mockImplementation(() => {
+    vi.spyOn(jwt, 'jwtDecode').mockImplementation(() => {
       throw new Error('Invalid token');
     });
 
@@ -199,12 +200,11 @@ describe('Auth Service (Senior Suite)', () => {
   });
 
   // ===================================================
-  // DECODE CACHING BEHAVIOR
+  // DECODE CACHING
   // ===================================================
 
   it('should cache decoded token and not decode twice', () => {
-    const mock = jwtDecode as any;
-    mock.mockReturnValue({ role: 'Admin' });
+    const mock = vi.spyOn(jwt, 'jwtDecode').mockReturnValue({ role: 'Admin' } as any);
 
     service.setToken('token');
 
@@ -213,5 +213,4 @@ describe('Auth Service (Senior Suite)', () => {
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
-
 });
