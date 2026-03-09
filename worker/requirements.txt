@@ -33,3 +33,6 @@ httpx==0.27.0
 # Utilities
 python-json-logger==2.0.7
 python-docx
+
+# Testing
+pytest==9.0.2
