@@ -36,3 +36,5 @@ python-docx
 
 # Testing
 pytest==9.0.2
+pytest-asyncio
+pytest-mock
