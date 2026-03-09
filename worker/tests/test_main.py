@@ -16,7 +16,7 @@ def test_read_root():
     assert response.status_code == 200
     data = response.json()
     assert data["service"] == "Invoice Processing Worker"
-    assert data["llm_model"] == "Llama-4"
+    assert data["llm_model"] == "llama-oss-120b"
 
 # --------------------------------------------------------------------------
 # TEST: Health Check & Metrics (with Worker Mock)
