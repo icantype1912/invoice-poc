@@ -8,7 +8,6 @@ import * as jwt from 'jwt-decode';
 describe('Auth Service (Senior Suite)', () => {
   let service: Auth;
   let httpMock: HttpTestingController;
-
   function setup(platform: 'browser' | 'server' = 'browser') {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
