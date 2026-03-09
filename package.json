@@ -1,5 +1,0 @@
-{
-  "devDependencies": {
-    "@cypress/angular": "^4.1.0"
-  }
-}
