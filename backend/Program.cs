@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Serilog;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -115,7 +116,17 @@ builder.Services.AddScoped<TokenCountValidator>();
 // --- 7. EXTERNAL SERVICES & HTTP CLIENTS ---
 builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 builder.Services.AddHttpClient(); // Required for general use
-builder.Services.AddHttpClient<VirusTotalScanner>(); // Required for Security Pipeline
+builder.Services.AddHttpClient<VirusTotalScanner>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["VirusTotal:BaseUrl"]
+                                 ?? "https://www.virustotal.com/");
+    var apiKey = builder.Configuration["VirusTotal:ApiKey"];
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Add("x-apikey", apiKey);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    }
+});
 builder.Services.AddScoped<IWorkerClient, WorkerClient>();
 
 // --- 8. BACKGROUND & BOOTSTRAP SERVICES ---

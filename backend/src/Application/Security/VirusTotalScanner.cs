@@ -17,19 +17,22 @@ namespace invoice_v1.src.Application.Security
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly ILogger<VirusTotalScanner> _logger;
+        private readonly string _baseUrl; // absolute base URL we will use
 
         public VirusTotalScanner(HttpClient httpClient, IConfiguration configuration, ILogger<VirusTotalScanner> logger)
         {
             _httpClient = httpClient;
             _apiKey = configuration["VirusTotal:ApiKey"] ?? string.Empty;
             _logger = logger;
+            // prefer explicit config; fallback to virustotal host
+            _baseUrl = (configuration["VirusTotal:BaseUrl"] ?? "https://www.virustotal.com").TrimEnd('/');
         }
 
         public async Task<VirusTotalResult> ScanAsync(Stream fileStream, string fileName)
         {
-            // Compute SHA256 hash locally — do NOT upload file bytes
+            // Compute SHA256 hash safely (handles non-seekable streams)
             var hash = ComputeSha256Hash(fileStream);
-            fileStream.Position = 0;
+            try { fileStream.Position = 0; } catch { /* ignore if non-seekable */ }
 
             if (string.IsNullOrEmpty(_apiKey))
             {
@@ -39,14 +42,21 @@ namespace invoice_v1.src.Application.Security
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v3/files/{hash}");
+                // Build an absolute request URI to avoid InvalidOperationException
+                var requestUri = $"{_baseUrl}/api/v3/files/{hash}";
+
+                // Debug log to confirm what's being used
+                _logger.LogDebug("VirusTotal scan: HttpClient.BaseAddress={BaseAddress}; RequestUri={RequestUri}",
+                    _httpClient.BaseAddress?.ToString() ?? "<null>", requestUri);
+
+                var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
                 request.Headers.Add("x-apikey", _apiKey);
+                request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
                 var response = await _httpClient.SendAsync(request);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    // Hash not in VirusTotal DB — treat as clean
                     _logger.LogInformation(
                         "VirusTotal: Hash {Hash} for {FileName} not found in database — treating as clean",
                         hash, fileName);
@@ -55,10 +65,10 @@ namespace invoice_v1.src.Application.Security
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // Non-404, non-200 — fail open
+                    var body = await SafeReadResponseBody(response);
                     _logger.LogWarning(
-                        "VirusTotal API returned {StatusCode} for hash {Hash}. Failing open",
-                        response.StatusCode, hash);
+                        "VirusTotal API returned {StatusCode} for hash {Hash}. Failing open. Body: {Body}",
+                        response.StatusCode, hash, body);
                     return new VirusTotalResult(true, false, hash, 0, 0, 0,
                         $"API returned {response.StatusCode} — failing open");
                 }
@@ -75,7 +85,6 @@ namespace invoice_v1.src.Application.Security
                 int malicious = stats.GetProperty("malicious").GetInt32();
                 int suspicious = stats.GetProperty("suspicious").GetInt32();
                 int total = 0;
-
                 foreach (var prop in stats.EnumerateObject())
                 {
                     total += prop.Value.GetInt32();
@@ -104,7 +113,6 @@ namespace invoice_v1.src.Application.Security
             }
             catch (Exception ex)
             {
-                // Fail open on API errors — do not block legitimate uploads
                 _logger.LogWarning(ex,
                     "VirusTotal API error for file {FileName}. Failing open", fileName);
                 return new VirusTotalResult(true, false, hash, 0, 0, 0,
@@ -114,9 +122,37 @@ namespace invoice_v1.src.Application.Security
 
         private static string ComputeSha256Hash(Stream stream)
         {
-            using var sha256 = SHA256.Create();
-            var hashBytes = sha256.ComputeHash(stream);
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            // handle non-seekable streams by copying to a MemoryStream
+            if (!stream.CanSeek)
+            {
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                ms.Position = 0;
+                using var sha = SHA256.Create();
+                var hashBytes = sha.ComputeHash(ms);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
+            else
+            {
+                var orig = stream.Position;
+                stream.Position = 0;
+                using var sha = SHA256.Create();
+                var hashBytes = sha.ComputeHash(stream);
+                stream.Position = orig;
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
+        private static async Task<string> SafeReadResponseBody(HttpResponseMessage resp)
+        {
+            try
+            {
+                return await resp.Content.ReadAsStringAsync();
+            }
+            catch
+            {
+                return "<unreadable body>";
+            }
         }
     }
 }

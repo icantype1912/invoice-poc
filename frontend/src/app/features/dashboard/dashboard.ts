@@ -751,7 +751,7 @@ export class Dashboard implements OnInit, OnDestroy {
       crossH.attr('y1', cy).attr('y2', cy).style('opacity', 1);
       crossDot.attr('cx', cx).attr('cy', cy).style('opacity', 1);
 
-      const dateStr = (d.period as Date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const dateStr = (d.period as Date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       const revPerInv = d.invoices > 0 ? (d.revenue / d.invoices) : 0;
 
       tip.style('opacity', '1').html(
